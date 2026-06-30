@@ -4,22 +4,27 @@ import Link from "next/link";
 import { useEffect, useState } from "react";
 import { usePathname } from "next/navigation";
 import { Brand } from "./brand";
-import { HomeIcon, PlusIcon, SearchIcon, ToolboxIcon, UserIcon } from "./icons";
+import { HomeIcon, MenuIcon, PlusIcon, SearchIcon, ToolboxIcon, UserIcon } from "./icons";
 import { getSupabaseBrowser, isSupabaseConfigured } from "@/lib/supabase-browser";
 
 const primaryNav = [
   { href: "/", label: "Home", icon: HomeIcon },
   { href: "/lookup", label: "Lookup", icon: SearchIcon },
-  { href: "/dashboard", label: "My tools", icon: ToolboxIcon },
-  { href: "/register", label: "Register", icon: PlusIcon },
+  { href: "/dashboard", label: "Assets", icon: ToolboxIcon },
+  { href: "/register", label: "Add", icon: PlusIcon },
 ];
 
 export function AppShell({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
   const [signedIn, setSignedIn] = useState(false);
+  const [menuOpen, setMenuOpen] = useState(false);
   const accountHref = signedIn ? "/dashboard" : "/login";
   const accountLabel = signedIn ? "Dashboard" : "Account";
   const isActive = (href: string) => href === "/" ? pathname === "/" : pathname.startsWith(href);
+
+  useEffect(() => {
+    setMenuOpen(false);
+  }, [pathname]);
 
   useEffect(() => {
     if (!isSupabaseConfigured()) return;
@@ -35,13 +40,28 @@ export function AppShell({ children }: { children: React.ReactNode }) {
         <div className="headerInner">
           <Brand />
           <nav className="desktopNav" aria-label="Primary navigation">
-            <Link href="/lookup">Check a tool</Link>
-            <Link href="/dashboard">My tools</Link>
+            <Link href="/lookup">Check an asset</Link>
+            <Link href="/dashboard">My assets</Link>
             <Link href="/register">Register</Link>
+            {signedIn && <Link href="/locations">Locations</Link>}
+            {signedIn && <Link href="/team">Team</Link>}
             <Link href="/shop">Shop</Link>
           </nav>
-          <Link className="headerAccount" href={accountHref}><UserIcon /><span>{accountLabel}</span></Link>
+          <div className="headerActions">
+            <Link className="headerAccount" href={accountHref}><UserIcon /><span>{accountLabel}</span></Link>
+            <button className="headerMenuButton" type="button" aria-label="Open menu" aria-expanded={menuOpen} onClick={() => setMenuOpen((value) => !value)}><MenuIcon /></button>
+          </div>
         </div>
+        {menuOpen && <nav className="mobileDrawer" aria-label="More navigation">
+          <Link href="/dashboard">My assets</Link>
+          <Link href="/register">Register asset</Link>
+          <Link href="/import">Bulk import</Link>
+          <Link href="/locations">Locations</Link>
+          <Link href="/team">Team</Link>
+          <Link href="/transfer">Accept transfer</Link>
+          <Link href="/account">Account & plan</Link>
+          <Link href="/shop">Shop</Link>
+        </nav>}
       </header>
 
       <main className="siteMain">{children}</main>
@@ -53,7 +73,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
             <span>{label}</span>
           </Link>
         ))}
-        <Link href={accountHref} className={!signedIn && pathname.startsWith("/login") ? "active" : ""}>
+        <Link href={signedIn ? "/account" : accountHref} className={pathname.startsWith("/account") || (!signedIn && pathname.startsWith("/login")) ? "active" : ""}>
           <UserIcon />
           <span>Account</span>
         </Link>

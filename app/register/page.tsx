@@ -224,8 +224,11 @@ export default function RegisterPage() {
     try {
       const supabase = getSupabaseBrowser();
       const serialOriginal = displaySerial(form.serial);
+      const { data: profileData } = await supabase.from("profiles").select("active_organization_id").eq("id", user.id).maybeSingle();
+      const { data: savedLocation } = resolvedLocation ? await supabase.from("asset_locations").select("id").eq("name", resolvedLocation).maybeSingle() : { data: null };
       const { data: asset, error: assetError } = await supabase.from("assets").insert({
         owner_id: user.id,
+        organization_id: profileData?.active_organization_id ?? null,
         make: form.make.trim(),
         model: form.model.trim(),
         category: resolvedCategory,
@@ -234,6 +237,7 @@ export default function RegisterPage() {
         secondary_identifier: form.secondary.trim() || null,
         colour: form.colour.trim() || null,
         storage_location: resolvedLocation || null,
+        location_id: savedLocation?.id ?? null,
         estimated_value: form.value ? Number(form.value) : null,
         supplier: form.supplier.trim() || null,
         purchase_date: form.purchaseDate || null,

@@ -1,3 +1,3 @@
-# ToolTrack development guidance
+# ToolTrack V4
 
-Run `npm run typecheck` and `npm run build` before committing. Keep all pages inside the shared AppShell and reuse the existing buttons, forms, cards and typography.
+Respect the mobile-first red-and-white design system, reusable page widths, GDPR-conscious private storage, Supabase RLS, account tiers, team roles, and audit history. Do not place server secrets in client components.

@@ -1,8 +1,11 @@
+import type { AccountType, PlanTier } from "@/lib/plans";
+
 export type AssetStatus = "safe" | "stolen" | "recovered" | "transfer";
 
 export interface Asset {
   id: string;
   owner_id: string;
+  organization_id: string | null;
   make: string;
   model: string;
   category: string;
@@ -11,12 +14,14 @@ export interface Asset {
   secondary_identifier: string | null;
   colour: string | null;
   storage_location: string | null;
+  location_id: string | null;
   estimated_value: number | null;
   supplier: string | null;
   purchase_date: string | null;
   purchase_price: number | null;
   invoice_number: string | null;
   security_id: string | null;
+  notes: string | null;
   catalogue_item_id: string | null;
   product_barcode: string | null;
   status: AssetStatus;
@@ -28,8 +33,73 @@ export interface Profile {
   id: string;
   display_name: string | null;
   business_name: string | null;
-  account_type: "individual" | "tradesperson" | "business";
+  phone: string | null;
+  account_type: AccountType;
+  plan_tier: PlanTier;
+  active_organization_id: string | null;
   email_sighting_notifications: boolean;
+  email_team_notifications: boolean;
+  created_at: string;
+}
+
+export interface Organization {
+  id: string;
+  owner_id: string;
+  name: string;
+  account_type: AccountType;
+  plan_tier: PlanTier;
+  created_at: string;
+}
+
+export interface OrganizationMember {
+  id: string;
+  organization_id: string;
+  user_id: string;
+  role: "owner" | "admin" | "editor" | "viewer";
+  status: "active" | "disabled";
+  created_at: string;
+  profiles?: { display_name: string | null } | null;
+}
+
+export interface TeamInvitation {
+  id: string;
+  organization_id: string;
+  email: string;
+  role: "admin" | "editor" | "viewer";
+  token: string;
+  status: "pending" | "accepted" | "expired" | "cancelled";
+  expires_at: string;
+  created_at: string;
+}
+
+export interface AssetLocation {
+  id: string;
+  owner_id: string;
+  organization_id: string | null;
+  name: string;
+  location_type: string | null;
+  notes: string | null;
+  is_default: boolean;
+  created_at: string;
+}
+
+export interface AssetAuditEntry {
+  id: string;
+  asset_id: string;
+  actor_id: string | null;
+  action: string;
+  changes: Record<string, unknown> | null;
+  created_at: string;
+}
+
+export interface OwnershipTransfer {
+  id: string;
+  asset_id: string;
+  from_owner_id: string;
+  recipient_email: string | null;
+  transfer_code: string;
+  status: "pending" | "accepted" | "cancelled" | "expired";
+  expires_at: string;
   created_at: string;
 }
 
@@ -66,7 +136,6 @@ export interface PublicLookupResult {
   publicReference?: string;
   message: string;
 }
-
 
 export interface CatalogueItem {
   id: string;
