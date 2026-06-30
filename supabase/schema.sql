@@ -1,12 +1,14 @@
--- ToolTrack Beta schema
--- Run this entire file in Supabase: SQL Editor -> New query -> Run.
+-- ToolTrack V3.2 Beta schema
+-- Run this entire file once in a new Supabase project.
 
 create extension if not exists pgcrypto;
 
 create table if not exists public.profiles (
   id uuid primary key references auth.users(id) on delete cascade,
   display_name text,
+  business_name text,
   account_type text not null default 'individual' check (account_type in ('individual','tradesperson','business')),
+  email_sighting_notifications boolean not null default true,
   created_at timestamptz not null default now()
 );
 
@@ -69,7 +71,6 @@ create table if not exists public.theft_reports (
 );
 create index if not exists theft_reports_asset_id_idx on public.theft_reports(asset_id);
 
-
 create table if not exists public.sightings (
   id uuid primary key default gen_random_uuid(),
   asset_id uuid not null references public.assets(id) on delete cascade,
@@ -79,6 +80,9 @@ create table if not exists public.sightings (
   listing_url text,
   details text not null,
   status text not null default 'new' check (status in ('new','reviewed','dismissed')),
+  notification_status text not null default 'pending',
+  notification_sent_at timestamptz,
+  notification_error text,
   created_at timestamptz not null default now()
 );
 create index if not exists sightings_asset_id_idx on public.sightings(asset_id);
@@ -87,7 +91,9 @@ create index if not exists sightings_theft_report_id_idx on public.sightings(the
 create or replace function public.handle_new_user()
 returns trigger language plpgsql security definer set search_path = public as $$
 begin
-  insert into public.profiles (id) values (new.id) on conflict do nothing;
+  insert into public.profiles (id, display_name)
+  values (new.id, nullif(new.raw_user_meta_data->>'full_name', ''))
+  on conflict do nothing;
   return new;
 end;
 $$;
@@ -101,27 +107,51 @@ alter table public.asset_documents enable row level security;
 alter table public.theft_reports enable row level security;
 alter table public.sightings enable row level security;
 
+drop policy if exists "Users read own profile" on public.profiles;
 create policy "Users read own profile" on public.profiles for select using (auth.uid() = id);
+drop policy if exists "Users insert own profile" on public.profiles;
+create policy "Users insert own profile" on public.profiles for insert with check (auth.uid() = id);
+drop policy if exists "Users update own profile" on public.profiles;
 create policy "Users update own profile" on public.profiles for update using (auth.uid() = id) with check (auth.uid() = id);
 
+drop policy if exists "Owners read assets" on public.assets;
 create policy "Owners read assets" on public.assets for select using (auth.uid() = owner_id);
+drop policy if exists "Owners insert assets" on public.assets;
 create policy "Owners insert assets" on public.assets for insert with check (auth.uid() = owner_id);
+drop policy if exists "Owners update assets" on public.assets;
 create policy "Owners update assets" on public.assets for update using (auth.uid() = owner_id) with check (auth.uid() = owner_id);
+drop policy if exists "Owners delete assets" on public.assets;
 create policy "Owners delete assets" on public.assets for delete using (auth.uid() = owner_id);
 
+drop policy if exists "Owners read photos" on public.asset_photos;
 create policy "Owners read photos" on public.asset_photos for select using (auth.uid() = owner_id);
+drop policy if exists "Owners insert photos" on public.asset_photos;
 create policy "Owners insert photos" on public.asset_photos for insert with check (auth.uid() = owner_id);
+drop policy if exists "Owners delete photos" on public.asset_photos;
 create policy "Owners delete photos" on public.asset_photos for delete using (auth.uid() = owner_id);
 
+drop policy if exists "Owners read documents" on public.asset_documents;
 create policy "Owners read documents" on public.asset_documents for select using (auth.uid() = owner_id);
+drop policy if exists "Owners insert documents" on public.asset_documents;
 create policy "Owners insert documents" on public.asset_documents for insert with check (auth.uid() = owner_id);
+drop policy if exists "Owners delete documents" on public.asset_documents;
 create policy "Owners delete documents" on public.asset_documents for delete using (auth.uid() = owner_id);
 
+drop policy if exists "Owners read theft reports" on public.theft_reports;
 create policy "Owners read theft reports" on public.theft_reports for select using (auth.uid() = owner_id);
+drop policy if exists "Owners insert theft reports" on public.theft_reports;
 create policy "Owners insert theft reports" on public.theft_reports for insert with check (auth.uid() = owner_id);
+drop policy if exists "Owners update theft reports" on public.theft_reports;
 create policy "Owners update theft reports" on public.theft_reports for update using (auth.uid() = owner_id) with check (auth.uid() = owner_id);
 
+drop policy if exists "Owners read sightings for own assets" on public.sightings;
 create policy "Owners read sightings for own assets" on public.sightings for select using (
+  exists (select 1 from public.assets where assets.id = sightings.asset_id and assets.owner_id = auth.uid())
+);
+drop policy if exists "Owners update sightings for own assets" on public.sightings;
+create policy "Owners update sightings for own assets" on public.sightings for update using (
+  exists (select 1 from public.assets where assets.id = sightings.asset_id and assets.owner_id = auth.uid())
+) with check (
   exists (select 1 from public.assets where assets.id = sightings.asset_id and assets.owner_id = auth.uid())
 );
 
@@ -133,16 +163,22 @@ insert into storage.buckets (id, name, public, file_size_limit, allowed_mime_typ
 values ('ownership-documents', 'ownership-documents', false, 15728640, array['application/pdf','image/jpeg','image/png','image/webp','image/heic','image/heif'])
 on conflict (id) do update set public = false;
 
+drop policy if exists "Users upload own asset photos" on storage.objects;
 create policy "Users upload own asset photos" on storage.objects for insert to authenticated
 with check (bucket_id = 'asset-photos' and (storage.foldername(name))[1] = auth.uid()::text);
+drop policy if exists "Users read own asset photos" on storage.objects;
 create policy "Users read own asset photos" on storage.objects for select to authenticated
 using (bucket_id = 'asset-photos' and (storage.foldername(name))[1] = auth.uid()::text);
+drop policy if exists "Users delete own asset photos" on storage.objects;
 create policy "Users delete own asset photos" on storage.objects for delete to authenticated
 using (bucket_id = 'asset-photos' and (storage.foldername(name))[1] = auth.uid()::text);
 
+drop policy if exists "Users upload own documents" on storage.objects;
 create policy "Users upload own documents" on storage.objects for insert to authenticated
 with check (bucket_id = 'ownership-documents' and (storage.foldername(name))[1] = auth.uid()::text);
+drop policy if exists "Users read own documents" on storage.objects;
 create policy "Users read own documents" on storage.objects for select to authenticated
 using (bucket_id = 'ownership-documents' and (storage.foldername(name))[1] = auth.uid()::text);
+drop policy if exists "Users delete own documents" on storage.objects;
 create policy "Users delete own documents" on storage.objects for delete to authenticated
 using (bucket_id = 'ownership-documents' and (storage.foldername(name))[1] = auth.uid()::text);
