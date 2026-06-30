@@ -28,6 +28,8 @@ export default function RegisterPage() {
   const router = useRouter();
 
   useEffect(() => {
+    const querySerial = new URLSearchParams(window.location.search).get("serial")?.trim();
+    if (querySerial) setForm((current) => current.serial ? current : { ...current, serial: querySerial.toUpperCase() });
     if (!isSupabaseConfigured()) { setAuthChecked(true); return; }
     getSupabaseBrowser().auth.getUser().then(({ data }) => { setUser(data.user); setAuthChecked(true); });
   }, []);
@@ -79,7 +81,7 @@ export default function RegisterPage() {
   }
 
   if (!authChecked) return <div className="pageWidth pagePad"><div className="skeletonCard" /></div>;
-  if (!user) return <div className="pageWidth pagePad narrowPage"><div className="emptyPanel"><ShieldIcon /><h1>Sign in before registering</h1><p>Your tool record and private documents must be attached to an account.</p><Link className="button primary" href="/login">Sign in or create account</Link></div></div>;
+  if (!user) return <div className="pageWidth pagePad narrowPage"><div className="emptyPanel"><ShieldIcon /><h1>Sign in before registering</h1><p>Your tool record and private documents must be attached to an account.</p><Link className="button primary" href={`/login?next=${encodeURIComponent(form.serial ? `/register?serial=${form.serial}` : "/register")}`}>Sign in or create account</Link></div></div>;
 
   return (
     <div className="pageWidth pagePad registerPage">

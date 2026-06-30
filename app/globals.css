@@ -306,3 +306,19 @@ svg { flex: none; }
   .productVisual { height: 100px; }
   .productCard .button { padding-inline: 8px; }
 }
+
+/* Lookup actions and public sighting report */
+.registerPrompt { display: flex; align-items: center; justify-content: space-between; gap: 18px; }
+.registerPrompt h3 { margin: 0 0 4px; }
+.registerPrompt p { margin: 0; }
+.sightingForm { display: grid; gap: 14px; border-top: 1px solid #eee; margin-top: 16px; padding-top: 18px; }
+.sightingForm .formGrid { gap: 14px; }
+.inlineActions { display: flex; justify-content: flex-end; gap: 10px; }
+.privacyHint { margin: 0; color: var(--muted); font-size: 12px; }
+.honeypot { position: absolute !important; left: -10000px !important; width: 1px !important; height: 1px !important; overflow: hidden !important; }
+@media (max-width: 680px) {
+  .registerPrompt { align-items: stretch; display: grid; }
+  .registerPrompt .button { width: 100%; }
+  .sightingForm .formGrid { grid-template-columns: 1fr; }
+  .inlineActions { display: grid; grid-template-columns: 1fr 1fr; }
+}

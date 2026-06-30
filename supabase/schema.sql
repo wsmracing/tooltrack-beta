@@ -69,6 +69,21 @@ create table if not exists public.theft_reports (
 );
 create index if not exists theft_reports_asset_id_idx on public.theft_reports(asset_id);
 
+
+create table if not exists public.sightings (
+  id uuid primary key default gen_random_uuid(),
+  asset_id uuid not null references public.assets(id) on delete cascade,
+  theft_report_id uuid not null references public.theft_reports(id) on delete cascade,
+  reporter_email text,
+  location_area text not null,
+  listing_url text,
+  details text not null,
+  status text not null default 'new' check (status in ('new','reviewed','dismissed')),
+  created_at timestamptz not null default now()
+);
+create index if not exists sightings_asset_id_idx on public.sightings(asset_id);
+create index if not exists sightings_theft_report_id_idx on public.sightings(theft_report_id);
+
 create or replace function public.handle_new_user()
 returns trigger language plpgsql security definer set search_path = public as $$
 begin
@@ -84,6 +99,7 @@ alter table public.assets enable row level security;
 alter table public.asset_photos enable row level security;
 alter table public.asset_documents enable row level security;
 alter table public.theft_reports enable row level security;
+alter table public.sightings enable row level security;
 
 create policy "Users read own profile" on public.profiles for select using (auth.uid() = id);
 create policy "Users update own profile" on public.profiles for update using (auth.uid() = id) with check (auth.uid() = id);
@@ -104,6 +120,10 @@ create policy "Owners delete documents" on public.asset_documents for delete usi
 create policy "Owners read theft reports" on public.theft_reports for select using (auth.uid() = owner_id);
 create policy "Owners insert theft reports" on public.theft_reports for insert with check (auth.uid() = owner_id);
 create policy "Owners update theft reports" on public.theft_reports for update using (auth.uid() = owner_id) with check (auth.uid() = owner_id);
+
+create policy "Owners read sightings for own assets" on public.sightings for select using (
+  exists (select 1 from public.assets where assets.id = sightings.asset_id and assets.owner_id = auth.uid())
+);
 
 insert into storage.buckets (id, name, public, file_size_limit, allowed_mime_types)
 values ('asset-photos', 'asset-photos', false, 10485760, array['image/jpeg','image/png','image/webp','image/heic','image/heif'])
