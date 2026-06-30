@@ -1,12 +1,14 @@
 "use client";
 
 import Link from "next/link";
-import { ChangeEvent, FormEvent, useEffect, useMemo, useState } from "react";
+import { ChangeEvent, FormEvent, useCallback, useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import type { User } from "@supabase/supabase-js";
-import { CameraIcon, FileIcon, ShieldIcon } from "@/components/icons";
+import { BarcodeIcon, CameraIcon, FileIcon, SearchIcon, ShieldIcon } from "@/components/icons";
+import { BarcodeScanner } from "@/components/barcode-scanner";
 import { getSupabaseBrowser, isSupabaseConfigured } from "@/lib/supabase-browser";
 import { displaySerial, normaliseSerial, safeFileName } from "@/lib/normalise";
+import type { CatalogueItem } from "@/lib/types";
 
 interface FormDataState {
   make: string;
@@ -36,6 +38,8 @@ const categories = [
   "Mitre saw",
   "Jigsaw",
   "Cut-off saw / consaw",
+  "Nailer / stapler",
+  "Cement mixer",
   "Hand tools",
   "Test equipment",
   "Lawn mower",
@@ -99,6 +103,13 @@ export default function RegisterPage() {
   const [accuracyConfirmed, setAccuracyConfirmed] = useState(false);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState("");
+  const [catalogueQuery, setCatalogueQuery] = useState("");
+  const [catalogueResults, setCatalogueResults] = useState<CatalogueItem[]>([]);
+  const [catalogueLoading, setCatalogueLoading] = useState(false);
+  const [catalogueMessage, setCatalogueMessage] = useState("");
+  const [catalogueItemId, setCatalogueItemId] = useState<string | null>(null);
+  const [productBarcode, setProductBarcode] = useState("");
+  const [scannerMode, setScannerMode] = useState<"product" | "serial" | null>(null);
   const router = useRouter();
 
   useEffect(() => {
@@ -113,6 +124,33 @@ export default function RegisterPage() {
       setAuthChecked(true);
     });
   }, []);
+
+  useEffect(() => {
+    const query = catalogueQuery.trim();
+    if (query.length < 2) {
+      setCatalogueResults([]);
+      return;
+    }
+    const controller = new AbortController();
+    const timer = window.setTimeout(async () => {
+      setCatalogueLoading(true);
+      try {
+        const response = await fetch(`/api/catalogue?q=${encodeURIComponent(query)}`, { signal: controller.signal });
+        const body = await response.json();
+        if (!response.ok) throw new Error(body.error || "Could not search the tool catalogue.");
+        setCatalogueResults((body.items ?? []) as CatalogueItem[]);
+      } catch (caught) {
+        if (caught instanceof DOMException && caught.name === "AbortError") return;
+        setCatalogueMessage(caught instanceof Error ? caught.message : "Could not search the tool catalogue.");
+      } finally {
+        setCatalogueLoading(false);
+      }
+    }, 280);
+    return () => {
+      window.clearTimeout(timer);
+      controller.abort();
+    };
+  }, [catalogueQuery]);
 
   const resolvedCategory = form.category === "Other" ? form.customCategory.trim() : form.category;
   const resolvedLocation = form.location === "Other" ? form.customLocation.trim() : form.location;
@@ -131,6 +169,47 @@ export default function RegisterPage() {
   function selectFiles(event: ChangeEvent<HTMLInputElement>, setter: (files: File[]) => void) {
     setter(Array.from(event.target.files ?? []));
   }
+
+  const applyCatalogueItem = useCallback((item: CatalogueItem, barcodeOverride?: string) => {
+    setForm((current) => ({
+      ...current,
+      make: item.make,
+      model: item.model,
+      category: categories.includes(item.category) ? item.category : "Other",
+      customCategory: categories.includes(item.category) ? "" : item.category,
+    }));
+    setCatalogueItemId(item.id);
+    setProductBarcode(barcodeOverride || item.gtin || "");
+    setCatalogueQuery(`${item.make} ${item.model}`);
+    setCatalogueResults([]);
+    setCatalogueMessage(`${item.make} ${item.model} selected from the ToolTrack catalogue.`);
+  }, []);
+
+  const handleScan = useCallback(async (value: string) => {
+    const mode = scannerMode;
+    setScannerMode(null);
+    if (mode === "serial") {
+      setForm((current) => ({ ...current, serial: displaySerial(value) }));
+      setCatalogueMessage("Serial number captured. Check it against the serial plate before saving.");
+      return;
+    }
+
+    const barcode = value.trim().replace(/\s+/g, "");
+    setProductBarcode(barcode);
+    setCatalogueMessage("Checking the product catalogue…");
+    try {
+      const response = await fetch(`/api/catalogue?barcode=${encodeURIComponent(barcode)}`);
+      const body = await response.json();
+      if (!response.ok) throw new Error(body.error || "Could not check the product barcode.");
+      if (body.item) applyCatalogueItem(body.item as CatalogueItem, barcode);
+      else {
+        setCatalogueItemId(null);
+        setCatalogueMessage("Barcode captured, but this product is not in the ToolTrack catalogue yet. Enter the make and model manually.");
+      }
+    } catch (caught) {
+      setCatalogueMessage(caught instanceof Error ? caught.message : "Barcode captured. Enter the make and model manually.");
+    }
+  }, [applyCatalogueItem, scannerMode]);
 
   async function submit(event: FormEvent) {
     event.preventDefault();
@@ -161,6 +240,8 @@ export default function RegisterPage() {
         purchase_price: form.purchasePrice ? Number(form.purchasePrice) : null,
         invoice_number: form.invoiceNumber.trim() || null,
         security_id: form.securityId.trim() || null,
+        catalogue_item_id: catalogueItemId,
+        product_barcode: productBarcode || null,
         status: "safe",
       }).select("id").single();
       if (assetError) throw assetError;
@@ -217,10 +298,22 @@ export default function RegisterPage() {
 
       <form className="registrationCard" onSubmit={submit}>
         {step === 1 && <section className="formStep">
-          <div className="formHeading"><h2>Asset details</h2><p>Copy the information from the item or serial plate.</p></div>
+          <div className="formHeading"><h2>Asset details</h2><p>Scan a code, search the catalogue, or enter the details manually.</p></div>
+
+          <div className="cataloguePanel">
+            <div className="catalogueHeading"><div><strong>Find the tool faster</strong><span>Search by make, model or manufacturer part number.</span></div><BarcodeIcon /></div>
+            <div className="catalogueSearch inputWithIcon"><SearchIcon /><input value={catalogueQuery} onChange={(event) => { setCatalogueQuery(event.target.value); setCatalogueMessage(""); }} placeholder="Try Makita DHR242" autoComplete="off" /></div>
+            {catalogueLoading && <p className="catalogueStatus">Searching catalogue…</p>}
+            {catalogueResults.length > 0 && <div className="catalogueResults">{catalogueResults.map((item) => <button type="button" key={item.id} onClick={() => applyCatalogueItem(item)}><span><strong>{item.make} {item.model}</strong><small>{item.category}{item.manufacturer_part_number ? ` · ${item.manufacturer_part_number}` : ""}</small></span><em>Select</em></button>)}</div>}
+            <div className="scanActions"><button className="button secondary" type="button" onClick={() => setScannerMode("product")}><BarcodeIcon /> Scan product barcode</button><button className="button secondary" type="button" onClick={() => setScannerMode("serial")}><CameraIcon /> Scan serial barcode</button></div>
+            {catalogueMessage && <p className="catalogueStatus">{catalogueMessage}</p>}
+            <p className="fieldHint">A product barcode usually identifies the model. The serial barcode identifies this individual asset.</p>
+          </div>
+
           <div className="formGrid">
-            <Field label="Make / brand" value={form.make} onChange={(value) => update("make", value)} placeholder="Makita" required />
-            <Field label="Model" value={form.model} onChange={(value) => update("model", value)} placeholder="DHR242" required />
+            <Field label="Make / brand" value={form.make} onChange={(value) => { update("make", value); setCatalogueItemId(null); }} placeholder="Makita" required />
+            <Field label="Model" value={form.model} onChange={(value) => { update("model", value); setCatalogueItemId(null); }} placeholder="DHR242" required />
+            <Field label="Product barcode / GTIN" value={productBarcode} onChange={(value) => setProductBarcode(value.replace(/\s+/g, ""))} inputMode="numeric" placeholder="Optional — scan or type" />
             <label>Category<select value={form.category} onChange={(event) => update("category", event.target.value)} required><option value="">Choose category</option>{categories.map((category) => <option key={category}>{category}</option>)}</select></label>
             {form.category === "Other" && <Field label="Custom category" value={form.customCategory} onChange={(value) => update("customCategory", value)} placeholder="Enter your own category" required />}
             <Field label="Serial number" value={form.serial} onChange={(value) => update("serial", value.toUpperCase())} onBlur={() => update("serial", displaySerial(form.serial))} placeholder="Serial number" required />
@@ -265,6 +358,7 @@ export default function RegisterPage() {
             <div><dt>Asset</dt><dd>{form.make} {form.model}</dd></div>
             <div><dt>Category</dt><dd>{resolvedCategory}</dd></div>
             <div><dt>Serial</dt><dd>{displaySerial(form.serial)}</dd></div>
+            <div><dt>Product barcode</dt><dd>{productBarcode || "Not provided"}</dd></div>
             <div><dt>Storage</dt><dd>{resolvedLocation || "Not provided"}</dd></div>
             <div><dt>Photos</dt><dd>{photos.length}</dd></div>
             <div><dt>Documents</dt><dd>{documents.length}</dd></div>
@@ -277,6 +371,13 @@ export default function RegisterPage() {
         {error && <div className="notice danger formNotice">{error}</div>}
         <div className="formActions"><button type="button" className="button secondary" onClick={() => setStep((current) => Math.max(1, current - 1))} disabled={step === 1 || saving}>Back</button>{step < 5 ? <button className="button primary" disabled={!canNext}>Next</button> : <button className="button primary" disabled={!canNext || saving}>{saving ? "Saving asset…" : "Complete registration"}</button>}</div>
       </form>
+
+      {scannerMode && <BarcodeScanner
+        title={scannerMode === "product" ? "Scan product barcode" : "Scan serial barcode"}
+        helpText={scannerMode === "product" ? "Use the barcode on the tool, box or packaging." : "Use the barcode or QR code beside the serial number on the rating plate."}
+        onDetected={handleScan}
+        onClose={() => setScannerMode(null)}
+      />}
     </div>
   );
 }

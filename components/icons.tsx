@@ -12,3 +12,5 @@ export function FileIcon(props: SVGProps<SVGSVGElement>) { return <svg {...base}
 export function AlertIcon(props: SVGProps<SVGSVGElement>) { return <svg {...base} {...props}><path d="M12 3 2.5 20h19z"/><path d="M12 9v5M12 17h.01"/></svg>; }
 export function HomeIcon(props: SVGProps<SVGSVGElement>) { return <svg {...base} {...props}><path d="m3 11 9-8 9 8"/><path d="M5 10v11h14V10M9 21v-7h6v7"/></svg>; }
 export function ShopIcon(props: SVGProps<SVGSVGElement>) { return <svg {...base} {...props}><path d="M4 9h16l-1 12H5z"/><path d="M7 9a5 5 0 0 1 10 0"/></svg>; }
+
+export function BarcodeIcon(props: SVGProps<SVGSVGElement>) { return <svg {...base} {...props}><path d="M3 5v4M3 15v4M21 5v4M21 15v4M7 6v12M10 6v12M14 6v12M17 6v12"/></svg>; }

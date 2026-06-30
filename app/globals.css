@@ -347,3 +347,47 @@ svg { flex: none; }
   .productVisual { height: 100px; }
   .productCard .button { padding-inline: 8px; }
 }
+
+/* V3.3 catalogue and barcode scanner */
+.cataloguePanel { border: 1px solid #e2e2e2; border-radius: 14px; background: #fafafa; margin-bottom: 22px; padding: 18px; }
+.catalogueHeading { display: flex; align-items: center; justify-content: space-between; gap: 16px; margin-bottom: 13px; }
+.catalogueHeading > div { display: grid; }
+.catalogueHeading strong { font-size: 16px; }
+.catalogueHeading span { color: var(--muted); font-size: 13px; font-weight: 500; }
+.catalogueHeading > svg { width: 32px; height: 32px; color: var(--red); }
+.catalogueSearch { margin-bottom: 9px; }
+.catalogueResults { display: grid; overflow: hidden; border: 1px solid #ddd; border-radius: 11px; background: #fff; margin: 8px 0 12px; }
+.catalogueResults button { min-height: 58px; display: flex; align-items: center; justify-content: space-between; gap: 16px; border: 0; border-bottom: 1px solid #eee; background: #fff; padding: 10px 13px; text-align: left; }
+.catalogueResults button:last-child { border-bottom: 0; }
+.catalogueResults button:hover { background: #fff7f7; }
+.catalogueResults span { min-width: 0; display: grid; }
+.catalogueResults strong { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.catalogueResults small { color: var(--muted); }
+.catalogueResults em { color: var(--red); font-size: 12px; font-style: normal; font-weight: 850; }
+.scanActions { display: grid; grid-template-columns: 1fr 1fr; gap: 9px; margin-top: 11px; }
+.catalogueStatus { margin: 9px 0 0; color: #555; font-size: 13px; }
+
+.scannerModal { width: min(100%, 680px); }
+.scannerHeader { display: flex; align-items: flex-start; justify-content: space-between; gap: 18px; }
+.scannerHeader h2 { margin-bottom: 6px; }
+.scannerHeader p:last-child { color: var(--muted); }
+.scannerClose { width: 40px; height: 40px; flex: none; display: grid; place-items: center; border: 1px solid #ddd; border-radius: 10px; background: #fff; font-size: 26px; line-height: 1; }
+.scannerViewport { position: relative; aspect-ratio: 4 / 3; overflow: hidden; border-radius: 14px; background: #111; margin: 8px 0 15px; }
+.scannerViewport video { width: 100%; height: 100%; display: block; object-fit: cover; }
+.scannerFrame { position: absolute; inset: 20%; pointer-events: none; }
+.scannerFrame span { position: absolute; width: 34px; height: 34px; border-color: #fff; border-style: solid; filter: drop-shadow(0 1px 2px rgba(0,0,0,.6)); }
+.scannerFrame span:nth-child(1) { left: 0; top: 0; border-width: 3px 0 0 3px; }
+.scannerFrame span:nth-child(2) { right: 0; top: 0; border-width: 3px 3px 0 0; }
+.scannerFrame span:nth-child(3) { right: 0; bottom: 0; border-width: 0 3px 3px 0; }
+.scannerFrame span:nth-child(4) { left: 0; bottom: 0; border-width: 0 0 3px 3px; }
+.scannerStatus { position: absolute; left: 12px; right: 12px; bottom: 12px; display: flex; align-items: center; justify-content: center; gap: 8px; border-radius: 999px; background: rgba(0,0,0,.7); color: #fff; padding: 9px 12px; font-size: 12px; font-weight: 750; text-align: center; }
+.scannerActions { display: flex; justify-content: flex-end; flex-wrap: wrap; gap: 9px; }
+
+@media (max-width: 680px) {
+  .cataloguePanel { margin-inline: -2px; padding: 14px; }
+  .scanActions { grid-template-columns: 1fr; }
+  .scannerModal { padding: 17px; }
+  .scannerViewport { aspect-ratio: 3 / 4; }
+  .scannerFrame { inset: 23% 10%; }
+  .scannerActions { display: grid; grid-template-columns: 1fr; }
+}

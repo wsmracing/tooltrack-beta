@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { normaliseOptionalUrl, normaliseSerial } from "@/lib/normalise";
 import { getSupabaseAdmin } from "@/lib/supabase-server";
+import { escapeEmailHtml, sendToolTrackEmail } from "@/lib/email";
 
 export const runtime = "nodejs";
 
@@ -20,16 +21,6 @@ function cleanText(value: unknown, maxLength: number) {
   return typeof value === "string" ? value.trim().slice(0, maxLength) : "";
 }
 
-function escapeHtml(value: string) {
-  return value.replace(/[&<>'"]/g, (character) => ({
-    "&": "&amp;",
-    "<": "&lt;",
-    ">": "&gt;",
-    "'": "&#039;",
-    '"': "&quot;",
-  })[character] ?? character);
-}
-
 function rateLimited(request: NextRequest) {
   const key = request.headers.get("x-forwarded-for")?.split(",")[0]?.trim()
     || request.headers.get("x-real-ip")
@@ -47,66 +38,57 @@ function rateLimited(request: NextRequest) {
 
 async function sendOwnerEmail({
   to,
+  sightingId,
   make,
   model,
   serial,
   locationArea,
   details,
   listingUrl,
+  reporterEmail,
 }: {
   to: string;
+  sightingId: string;
   make: string;
   model: string;
   serial: string;
   locationArea: string;
   details: string;
   listingUrl: string | null;
+  reporterEmail: string | null;
 }) {
-  const apiKey = process.env.RESEND_API_KEY;
-  const from = process.env.RESEND_FROM_EMAIL;
-  if (!apiKey || !from) return { status: "skipped" as const, error: "Email service is not configured." };
-
   const appUrl = (process.env.NEXT_PUBLIC_APP_URL || "").replace(/\/$/, "");
   const dashboardUrl = appUrl ? `${appUrl}/dashboard#sightings` : "";
   const listingBlock = listingUrl
-    ? `<p><strong>Listing:</strong> <a href="${escapeHtml(listingUrl)}">${escapeHtml(listingUrl)}</a></p>`
+    ? `<p><strong>Listing:</strong> <a href="${escapeEmailHtml(listingUrl)}">${escapeEmailHtml(listingUrl)}</a></p>`
     : "";
+  const reporterBlock = reporterEmail
+    ? `<p><strong>Reporter contact:</strong> ${escapeEmailHtml(reporterEmail)}</p>`
+    : `<p><strong>Reporter contact:</strong> Not provided</p>`;
   const button = dashboardUrl
-    ? `<p style="margin-top:24px"><a href="${escapeHtml(dashboardUrl)}" style="display:inline-block;background:#d71920;color:#fff;text-decoration:none;padding:12px 18px;border-radius:8px;font-weight:700">Open ToolTrack</a></p>`
+    ? `<p style="margin-top:24px"><a href="${escapeEmailHtml(dashboardUrl)}" style="display:inline-block;background:#d71920;color:#fff;text-decoration:none;padding:12px 18px;border-radius:8px;font-weight:700">Review sighting in ToolTrack</a></p>`
     : "";
 
-  const response = await fetch("https://api.resend.com/emails", {
-    method: "POST",
-    headers: {
-      Authorization: `Bearer ${apiKey}`,
-      "Content-Type": "application/json",
-    },
-    body: JSON.stringify({
-      from,
-      to: [to],
-      subject: `New sighting reported for your ${make} ${model}`,
-      html: `
-        <div style="font-family:Arial,sans-serif;max-width:620px;margin:auto;color:#171717">
-          <div style="border-top:6px solid #d71920;padding-top:20px">
-            <h1 style="font-size:24px;margin-bottom:8px">A new sighting was reported</h1>
-            <p>A ToolTrack user submitted information about your stolen <strong>${escapeHtml(make)} ${escapeHtml(model)}</strong>.</p>
-            <p><strong>Serial:</strong> ${escapeHtml(serial)}</p>
-            <p><strong>Reported location:</strong> ${escapeHtml(locationArea)}</p>
-            ${listingBlock}
-            <div style="background:#f5f5f5;border-radius:10px;padding:16px;margin-top:16px;white-space:pre-wrap">${escapeHtml(details)}</div>
-            <p style="font-size:13px;color:#666;margin-top:18px">Do not confront anyone. Contact An Garda Síochána where appropriate and verify all information independently.</p>
-            ${button}
-          </div>
-        </div>`,
-    }),
+  return sendToolTrackEmail({
+    to,
+    subject: `New sighting reported for your ${make} ${model}`,
+    idempotencyKey: `sighting-${sightingId}`,
+    text: `A new sighting was reported for your ${make} ${model}. Location: ${locationArea}. Details: ${details}`,
+    html: `
+      <div style="font-family:Arial,sans-serif;max-width:620px;margin:auto;color:#171717">
+        <div style="border-top:6px solid #d71920;padding-top:20px">
+          <h1 style="font-size:24px;margin-bottom:8px">A new sighting was reported</h1>
+          <p>Information was submitted about your stolen <strong>${escapeEmailHtml(make)} ${escapeEmailHtml(model)}</strong>.</p>
+          <p><strong>Serial:</strong> ${escapeEmailHtml(serial)}</p>
+          <p><strong>Reported location:</strong> ${escapeEmailHtml(locationArea)}</p>
+          ${listingBlock}
+          ${reporterBlock}
+          <div style="background:#f5f5f5;border-radius:10px;padding:16px;margin-top:16px;white-space:pre-wrap">${escapeEmailHtml(details)}</div>
+          <p style="font-size:13px;color:#666;margin-top:18px">Do not confront anyone. Contact An Garda Síochána where appropriate and verify all information independently.</p>
+          ${button}
+        </div>
+      </div>`,
   });
-
-  if (!response.ok) {
-    const body = await response.text();
-    return { status: "failed" as const, error: body.slice(0, 500) || "Email provider rejected the message." };
-  }
-
-  return { status: "sent" as const, error: null };
 }
 
 export async function POST(request: NextRequest) {
@@ -220,15 +202,18 @@ export async function POST(request: NextRequest) {
       } else {
         const emailResult = await sendOwnerEmail({
           to: ownerData.user.email,
+          sightingId: sighting.id,
           make: asset.make,
           model: asset.model,
           serial: asset.serial_original,
           locationArea,
           details,
           listingUrl,
+          reporterEmail,
         });
         notificationStatus = emailResult.status;
         notificationError = emailResult.error;
+        await admin.from("sightings").update({ notification_provider_id: emailResult.providerId }).eq("id", sighting.id);
       }
     }
   } catch (error) {

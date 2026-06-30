@@ -1,0 +1,3 @@
+catalogue_key,make,model,category,manufacturer_part_number,gtin,power_type,voltage,source,is_active
+example-makita-dhr242,Makita,DHR242,Rotary hammer,DHR242,,Battery,18V,Admin CSV import,true
+example-custom-tool,Example Brand,Example Model,Other,EX-001,5390000000014,Battery,18V,Admin CSV import,true

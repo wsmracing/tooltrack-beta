@@ -16,6 +16,8 @@ export default function AccountPage() {
   const [emailNotifications, setEmailNotifications] = useState(true);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
+  const [sendingTest, setSendingTest] = useState(false);
+  const [exportingPdf, setExportingPdf] = useState(false);
   const [message, setMessage] = useState("");
   const [error, setError] = useState("");
   const router = useRouter();
@@ -76,38 +78,120 @@ export default function AccountPage() {
     router.refresh();
   }
 
-  async function exportData() {
+  async function sendTestEmail() {
     if (!user) return;
+    setSendingTest(true);
+    setMessage("");
     setError("");
-    const supabase = getSupabaseBrowser();
-    const [assets, documents, photos, theftReports, sightings] = await Promise.all([
-      supabase.from("assets").select("*"),
-      supabase.from("asset_documents").select("*"),
-      supabase.from("asset_photos").select("*"),
-      supabase.from("theft_reports").select("*"),
-      supabase.from("sightings").select("*"),
-    ]);
-    const failed = [assets, documents, photos, theftReports, sightings].find((response) => response.error);
-    if (failed?.error) {
-      setError(failed.error.message);
-      return;
+    try {
+      const { data: session } = await getSupabaseBrowser().auth.getSession();
+      const token = session.session?.access_token;
+      if (!token) throw new Error("Your session has expired. Please sign in again.");
+      const response = await fetch("/api/email/test", {
+        method: "POST",
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      const body = await response.json();
+      if (!response.ok) throw new Error(body.error || "Could not send the test email.");
+      setMessage(body.message || "Test email sent.");
+    } catch (caught) {
+      setError(caught instanceof Error ? caught.message : "Could not send the test email.");
+    } finally {
+      setSendingTest(false);
     }
-    const exportPayload = {
-      exported_at: new Date().toISOString(),
-      account: { email: user.email, profile },
-      assets: assets.data,
-      documents: documents.data,
-      photos: photos.data,
-      theft_reports: theftReports.data,
-      sightings: sightings.data,
-    };
-    const blob = new Blob([JSON.stringify(exportPayload, null, 2)], { type: "application/json" });
-    const url = URL.createObjectURL(blob);
-    const anchor = document.createElement("a");
-    anchor.href = url;
-    anchor.download = `tooltrack-data-${new Date().toISOString().slice(0, 10)}.json`;
-    anchor.click();
-    URL.revokeObjectURL(url);
+  }
+
+  async function exportPdf() {
+    if (!user) return;
+    setExportingPdf(true);
+    setMessage("");
+    setError("");
+    try {
+      const supabase = getSupabaseBrowser();
+      const [assets, theftReports, sightings] = await Promise.all([
+        supabase.from("assets").select("*").order("registered_at", { ascending: true }),
+        supabase.from("theft_reports").select("*").order("reported_at", { ascending: true }),
+        supabase.from("sightings").select("*").order("created_at", { ascending: true }),
+      ]);
+      const failed = [assets, theftReports, sightings].find((response) => response.error);
+      if (failed?.error) throw failed.error;
+
+      const { jsPDF } = await import("jspdf");
+      const doc = new jsPDF({ unit: "mm", format: "a4" });
+      const left = 16;
+      const right = 194;
+      const lineHeight = 5.2;
+      let y = 18;
+
+      function ensureSpace(height = 12) {
+        if (y + height <= 282) return;
+        doc.addPage();
+        y = 18;
+      }
+
+      function textLine(value: string, size = 10, bold = false) {
+        doc.setFont("helvetica", bold ? "bold" : "normal");
+        doc.setFontSize(size);
+        const lines = doc.splitTextToSize(value, right - left);
+        ensureSpace(lines.length * lineHeight + 2);
+        doc.text(lines, left, y);
+        y += lines.length * lineHeight + 2;
+      }
+
+      doc.setTextColor(215, 25, 32);
+      textLine("ToolTrack Asset Summary", 20, true);
+      doc.setTextColor(40, 40, 40);
+      textLine(`Generated: ${new Date().toLocaleString("en-IE")}`, 9);
+      textLine(`Account: ${displayName.trim() || user.email || "ToolTrack user"}`, 11, true);
+      if (businessName.trim()) textLine(`Business: ${businessName.trim()}`, 10);
+      if (user.email) textLine(`Email: ${user.email}`, 10);
+      y += 4;
+
+      const assetRows = assets.data ?? [];
+      textLine(`Registered assets (${assetRows.length})`, 15, true);
+      if (!assetRows.length) textLine("No assets are currently registered.", 10);
+
+      for (const asset of assetRows) {
+        ensureSpace(36);
+        doc.setDrawColor(220, 220, 220);
+        doc.line(left, y, right, y);
+        y += 6;
+        textLine(`${asset.make} ${asset.model}`, 12, true);
+        textLine(`Category: ${asset.category}   |   Status: ${String(asset.status).toUpperCase()}`, 9);
+        textLine(`Serial: ${asset.serial_original}`, 10, true);
+        if (asset.product_barcode) textLine(`Product barcode: ${asset.product_barcode}`, 9);
+        if (asset.storage_location) textLine(`Storage location: ${asset.storage_location}`, 9);
+        if (asset.supplier || asset.purchase_date || asset.purchase_price) {
+          const purchase = [
+            asset.supplier ? `Supplier: ${asset.supplier}` : "",
+            asset.purchase_date ? `Date: ${new Date(asset.purchase_date).toLocaleDateString("en-IE")}` : "",
+            asset.purchase_price != null ? `Price: €${Number(asset.purchase_price).toFixed(2)}` : "",
+          ].filter(Boolean).join("   |   ");
+          textLine(purchase, 9);
+        }
+        textLine(`Registered: ${new Date(asset.registered_at).toLocaleDateString("en-IE")}`, 9);
+
+        const assetThefts = (theftReports.data ?? []).filter((report) => report.asset_id === asset.id);
+        for (const report of assetThefts) {
+          textLine(`Theft report ${report.public_reference}: ${report.location_area} on ${new Date(report.theft_date).toLocaleDateString("en-IE")}${report.recovered_at ? " — recovered" : ""}`, 9);
+        }
+        const assetSightings = (sightings.data ?? []).filter((sighting) => sighting.asset_id === asset.id);
+        if (assetSightings.length) textLine(`Sightings recorded: ${assetSightings.length}`, 9, true);
+      }
+
+      y += 6;
+      ensureSpace(26);
+      doc.setDrawColor(215, 25, 32);
+      doc.line(left, y, right, y);
+      y += 7;
+      textLine("This summary is generated from the user's ToolTrack account. It supports record keeping but is not, by itself, proof of legal ownership.", 8);
+      doc.save(`tooltrack-asset-summary-${new Date().toISOString().slice(0, 10)}.pdf`);
+      setMessage("PDF summary downloaded.");
+    } catch (caught) {
+      setError(caught instanceof Error ? caught.message : "Could not create the PDF summary.");
+    } finally {
+      setExportingPdf(false);
+    }
   }
 
   async function deleteAccount() {
@@ -157,8 +241,13 @@ export default function AccountPage() {
       </form>
 
       <section className="settingsCard accountActionsCard">
-        <div><ShieldIcon /><span><strong>Your ToolTrack data</strong><small>Download a JSON copy of your account and asset records.</small></span></div>
-        <button className="button secondary" type="button" onClick={() => void exportData()}>Download my data</button>
+        <div><ShieldIcon /><span><strong>Asset summary</strong><small>Download a readable PDF of your registered assets and theft history.</small></span></div>
+        <button className="button secondary" type="button" onClick={() => void exportPdf()} disabled={exportingPdf}>{exportingPdf ? "Creating PDF…" : "Download PDF summary"}</button>
+      </section>
+
+      <section className="settingsCard accountActionsCard">
+        <div><ShieldIcon /><span><strong>Email notifications</strong><small>Send a test to confirm that sighting alerts are connected.</small></span></div>
+        <button className="button secondary" type="button" onClick={() => void sendTestEmail()} disabled={sendingTest}>{sendingTest ? "Sending…" : "Send test email"}</button>
       </section>
 
       <section className="settingsCard accountActionsCard">

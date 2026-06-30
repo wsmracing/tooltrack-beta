@@ -17,6 +17,8 @@ export interface Asset {
   purchase_price: number | null;
   invoice_number: string | null;
   security_id: string | null;
+  catalogue_item_id: string | null;
+  product_barcode: string | null;
   status: AssetStatus;
   registered_at: string;
   updated_at: string;
@@ -42,6 +44,7 @@ export interface Sighting {
   status: "new" | "reviewed" | "dismissed";
   notification_status: "pending" | "sent" | "skipped" | "failed";
   notification_sent_at: string | null;
+  notification_provider_id?: string | null;
   created_at: string;
   assets?: {
     make: string;
@@ -62,4 +65,18 @@ export interface PublicLookupResult {
   locationArea?: string;
   publicReference?: string;
   message: string;
+}
+
+
+export interface CatalogueItem {
+  id: string;
+  catalogue_key: string;
+  make: string;
+  model: string;
+  category: string;
+  manufacturer_part_number: string | null;
+  gtin: string | null;
+  power_type: string | null;
+  voltage: string | null;
+  source: string;
 }
