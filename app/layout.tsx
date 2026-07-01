@@ -5,6 +5,7 @@ import "./globals.css";
 
 import { AppShell } from "@/components/app-shell";
 import { PwaRegister } from "@/components/pwa-register";
+import { ToolTrackAnalytics } from "@/components/vercel-analytics";
 
 export const metadata: Metadata = {
   title: {
@@ -37,6 +38,7 @@ export default function RootLayout({
       <body>
         <PwaRegister />
         <AppShell>{children}</AppShell>
+        <ToolTrackAnalytics />
       </body>
     </html>
   );

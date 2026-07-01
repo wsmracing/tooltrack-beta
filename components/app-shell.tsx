@@ -45,7 +45,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
     {menuOpen && <nav className="mobileDrawer" aria-label="More navigation">
       {signedIn && <Link href="/dashboard">Dashboard</Link>}
       <Link href="/assets">My assets</Link><Link href="/register">Register asset</Link>
-      {signedIn && <><Link href="/locations">Locations</Link><Link href="/team">Team</Link><Link href="/account/orders">My orders</Link><Link href="/account">Account</Link></>}
+      {signedIn && <><Link href="/team">Team</Link><Link href="/account/orders">My orders</Link><Link href="/account">Account</Link></>}
       <Link href="/shop">Shop</Link>
     </nav>}</header>
     <main className="siteMain">{children}</main>

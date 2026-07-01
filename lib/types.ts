@@ -151,17 +151,37 @@ export interface CatalogueItem {
 }
 
 
+export interface ShopProductImage {
+  id: string;
+  product_id: string;
+  storage_path: string;
+  alt_text: string | null;
+  sort_order: number;
+  is_primary: boolean;
+  created_at: string;
+}
+
 export interface ShopProduct {
   id: string;
   name: string;
   slug: string;
+  sku: string | null;
   description: string | null;
+  full_description: string | null;
   category: string;
+  manufacturer: string | null;
+  model: string | null;
+  warranty: string | null;
+  features: string[] | null;
+  specifications: Record<string, string> | null;
   price_cents: number;
+  sale_price_cents: number | null;
   stock_quantity: number;
   is_active: boolean;
+  is_featured: boolean;
   created_at: string;
   updated_at: string;
+  shop_product_images?: ShopProductImage[];
 }
 
 export interface ShopOrderItem {
@@ -173,11 +193,21 @@ export interface ShopOrderItem {
   unit_price_cents: number;
 }
 
+export type ShopOrderStatus =
+  | "pending"
+  | "processing"
+  | "dispatched"
+  | "delivered"
+  | "completed"
+  | "cancelled";
+
 export interface ShopOrder {
   id: string;
   user_id: string;
-  status: "pending" | "processing" | "dispatched" | "completed" | "cancelled";
+  status: ShopOrderStatus;
   total_cents: number;
+  status_updated_at: string | null;
+  status_updated_by: string | null;
   created_at: string;
   updated_at: string;
   shop_order_items?: ShopOrderItem[];

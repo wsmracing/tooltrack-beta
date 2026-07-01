@@ -84,7 +84,7 @@ export default function TeamPage() {
     <div className="sectionTitleRow"><div><p className="eyebrow red">Shared access</p><h1>Team and permissions</h1><p className="muted">Invite staff without sharing the main account password.</p></div><UsersIcon /></div>
     {message && <div className="notice success">{message}</div>}{error && <div className="notice danger">{error}</div>}
     {!plan.teamTools && <div className="upgradePanel"><UsersIcon /><h2>Team access is included with Business and Fleet accounts</h2><p>Trade accounts still include bulk edit and CSV import for one user.</p><Link className="button primary" href="/account#plans">Choose a team account</Link></div>}
-    {plan.teamTools && !organization && <div className="upgradePanel"><BuildingIcon /><h2>Create your shared workspace</h2><p>This groups company assets, locations and staff permissions.</p><button className="button primary" onClick={() => void createOrganization()} disabled={sending}>{sending ? "Creating…" : "Create team workspace"}</button></div>}
+    {plan.teamTools && !organization && <div className="upgradePanel"><BuildingIcon /><h2>Create your shared workspace</h2><p>This groups company assets and staff permissions.</p><button className="button primary" onClick={() => void createOrganization()} disabled={sending}>{sending ? "Creating…" : "Create team workspace"}</button></div>}
     {plan.teamTools && organization && <>
       <div className="organizationBanner"><BuildingIcon /><div><span>Workspace</span><strong>{organization.name}</strong></div><div><span>Seats</span><strong>{members.length} / {plan.memberLimit}</strong></div></div>
       <div className="splitLayout">
