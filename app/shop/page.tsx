@@ -1,4 +1,1 @@
-import type { Metadata } from "next";
-import { ShopClient } from "./shop-client";
-export const metadata: Metadata = { title: "Security shop" };
-export default function ShopPage() { return <ShopClient />; }
+import type {Metadata} from "next"; import {ShopIcon} from "@/components/icons"; import ShopClient from "./shop-client"; export const metadata:Metadata={title:"Security shop"}; export default function ShopPage(){return <div className="pageWidth pagePad"><div className="sectionTitleRow"><div><p className="eyebrow red">Prototype shop</p><h1>Security products</h1><p className="muted">Create test orders without taking payment.</p></div><ShopIcon/></div><ShopClient/></div>}

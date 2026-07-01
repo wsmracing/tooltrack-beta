@@ -148,35 +148,43 @@ export interface CatalogueItem {
   power_type: string | null;
   voltage: string | null;
   source: string;
-  community_count?: number;
-  verification_status?: "verified" | "community" | "review";
 }
+
 
 export interface ShopProduct {
   id: string;
-  sku: string;
-  slug: string;
   name: string;
+  slug: string;
   description: string | null;
   category: string;
   price_cents: number;
-  compare_at_price_cents: number | null;
-  currency: string;
   stock_quantity: number;
-  image_url: string | null;
-  active: boolean;
-  featured: boolean;
+  is_active: boolean;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface ShopOrderItem {
+  id: string;
+  order_id: string;
+  product_id: string | null;
+  product_name: string;
+  quantity: number;
+  unit_price_cents: number;
 }
 
 export interface ShopOrder {
   id: string;
-  order_number: string;
-  status: string;
-  payment_status: string;
-  subtotal_cents: number;
-  shipping_cents: number;
+  user_id: string;
+  status: "pending" | "processing" | "dispatched" | "completed" | "cancelled";
   total_cents: number;
-  currency: string;
   created_at: string;
+  updated_at: string;
+  shop_order_items?: ShopOrderItem[];
 }
 
+export interface PlatformAdmin {
+  user_id: string;
+  role: "admin" | "super_admin";
+  created_at: string;
+}

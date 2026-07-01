@@ -26,7 +26,7 @@ export async function POST(request: NextRequest) {
 
   const appUrl = (process.env.NEXT_PUBLIC_APP_URL || request.nextUrl.origin).replace(/\/$/, "");
   const organizationName = ((membership.organizations as unknown as { name?: string } | null)?.name || "a ToolTrack team");
-  const link = `${appUrl}/team/accept?token=${encodeURIComponent(invitationToken)}`;
+  const link = `${appUrl}/invite/team?token=${encodeURIComponent(invitationToken)}`;
   const result = await sendToolTrackEmail({
     to: email,
     subject: `You have been invited to ${organizationName} on ToolTrack`,

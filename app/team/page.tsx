@@ -65,7 +65,7 @@ export default function TeamPage() {
       const token = session.session?.access_token; if (!token) throw new Error("Your session has expired.");
       const response = await fetch("/api/team/invite", { method: "POST", headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` }, body: JSON.stringify({ organizationId: organization.id, email, role }) });
       const body = await response.json(); if (!response.ok) throw new Error(body.error || "Could not send the invitation.");
-      setMessage(body.message); setLastInviteLink(`${window.location.origin}/team/accept?token=${body.token}`); setEmail(""); await load();
+      setMessage(body.message); setLastInviteLink(`${window.location.origin}/invite/team?token=${body.token}`); setEmail(""); await load();
     } catch (caught) { setError(caught instanceof Error ? caught.message : "Could not send the invitation."); }
     finally { setSending(false); }
   }
