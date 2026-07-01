@@ -148,4 +148,35 @@ export interface CatalogueItem {
   power_type: string | null;
   voltage: string | null;
   source: string;
+  community_count?: number;
+  verification_status?: "verified" | "community" | "review";
 }
+
+export interface ShopProduct {
+  id: string;
+  sku: string;
+  slug: string;
+  name: string;
+  description: string | null;
+  category: string;
+  price_cents: number;
+  compare_at_price_cents: number | null;
+  currency: string;
+  stock_quantity: number;
+  image_url: string | null;
+  active: boolean;
+  featured: boolean;
+}
+
+export interface ShopOrder {
+  id: string;
+  order_number: string;
+  status: string;
+  payment_status: string;
+  subtotal_cents: number;
+  shipping_cents: number;
+  total_cents: number;
+  currency: string;
+  created_at: string;
+}
+

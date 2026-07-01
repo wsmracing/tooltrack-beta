@@ -11,6 +11,8 @@ export interface PlanDefinition {
   bulkTools: boolean;
   teamTools: boolean;
   description: string;
+  monthlyPrice: number;
+  priceLabel: string;
   features: string[];
 }
 
@@ -25,6 +27,8 @@ export const plans: PlanDefinition[] = [
     bulkTools: false,
     teamTools: false,
     description: "A simple register for household, garden and personal tools.",
+    monthlyPrice: 0,
+    priceLabel: "Free",
     features: ["25 assets", "Photos and receipts", "Stolen lookup", "Sighting alerts"],
   },
   {
@@ -37,6 +41,8 @@ export const plans: PlanDefinition[] = [
     bulkTools: true,
     teamTools: false,
     description: "For a working tool collection, van or workshop.",
+    monthlyPrice: 4.99,
+    priceLabel: "€4.99 / month",
     features: ["250 assets", "Bulk edit", "CSV import/export", "PDF asset register"],
   },
   {
@@ -49,6 +55,8 @@ export const plans: PlanDefinition[] = [
     bulkTools: true,
     teamTools: true,
     description: "Shared asset management for a small or growing business.",
+    monthlyPrice: 9.99,
+    priceLabel: "€9.99 / month",
     features: ["2,000 assets", "20 team members", "Shared locations", "Audit history"],
   },
   {
@@ -61,6 +69,8 @@ export const plans: PlanDefinition[] = [
     bulkTools: true,
     teamTools: true,
     description: "Higher-volume registration, transfers and location control.",
+    monthlyPrice: 24.99,
+    priceLabel: "€24.99 / month",
     features: ["10,000 assets", "100 team members", "Transfers", "Fleet workflows"],
   },
 ];

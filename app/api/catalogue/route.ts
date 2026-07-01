@@ -19,7 +19,7 @@ export async function GET(request: NextRequest) {
   if (barcode) {
     const { data, error } = await admin
       .from("product_catalogue")
-      .select("id, catalogue_key, make, model, category, manufacturer_part_number, gtin, power_type, voltage, source")
+      .select("id, catalogue_key, make, model, category, manufacturer_part_number, gtin, power_type, voltage, source, community_count, verification_status")
       .eq("gtin", barcode)
       .eq("is_active", true)
       .maybeSingle();
@@ -39,7 +39,7 @@ export async function GET(request: NextRequest) {
 
   const { data, error } = await admin
     .from("product_catalogue")
-    .select("id, catalogue_key, make, model, category, manufacturer_part_number, gtin, power_type, voltage, source")
+    .select("id, catalogue_key, make, model, category, manufacturer_part_number, gtin, power_type, voltage, source, community_count, verification_status")
     .eq("is_active", true)
     .ilike("search_text", `%${query}%`)
     .order("make", { ascending: true })

@@ -1,0 +1,5 @@
+import type { Metadata } from "next";
+export const metadata: Metadata = { title: "Terms of use" };
+export default function TermsPage() {
+  return <div className="pageWidth pagePad narrowPage"><p className="eyebrow red">Legal</p><h1>Terms of use</h1><div className="legalCopy"><p>ToolTrack is currently operating as a beta service. Features, pricing and availability may change while the service is tested.</p><h2>Asset records</h2><p>Users are responsible for submitting accurate information and must not knowingly register assets they do not own or submit false theft reports.</p><h2>Public lookup</h2><p>A clean lookup result does not prove ownership or guarantee that an item is legitimate. Buyers should inspect the asset and seller details independently.</p><h2>Shop beta</h2><p>Shop orders created during the beta are test orders unless ToolTrack confirms otherwise. No payment is taken through the current prototype checkout.</p><h2>Contact</h2><p>Questions can be sent through the ToolTrack contact page.</p></div></div>;
+}

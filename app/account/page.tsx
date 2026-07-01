@@ -4,7 +4,7 @@ import Link from "next/link";
 import { FormEvent, useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import type { User } from "@supabase/supabase-js";
-import { BuildingIcon, CheckIcon, DownloadIcon, MailIcon, MapPinIcon, ShieldIcon, UploadIcon, UserIcon, UsersIcon } from "@/components/icons";
+import { BuildingIcon, CheckIcon, DownloadIcon, MailIcon, MapPinIcon, ShieldIcon, ShopIcon, UploadIcon, UserIcon, UsersIcon } from "@/components/icons";
 import { getSupabaseBrowser, isSupabaseConfigured } from "@/lib/supabase-browser";
 import type { Asset, Profile } from "@/lib/types";
 import { getPlan, plans, type PlanTier } from "@/lib/plans";
@@ -211,7 +211,7 @@ export default function AccountPage() {
       <section className="planSection" id="plans">
         <div className="dashboardSectionHeading"><div><p className="eyebrow red">Account types</p><h2>Choose how you use ToolTrack</h2><p className="muted">Plans are unlocked for prototype testing. No payment is taken.</p></div></div>
         <div className="planGrid">{plans.map((plan) => <button type="button" className={`planCard ${selectedPlan === plan.tier ? "selected" : ""}`} key={plan.tier} onClick={() => setSelectedPlan(plan.tier)}>
-          <div className="planCardTop"><span>{plan.audience}</span>{selectedPlan === plan.tier && <CheckIcon />}</div><h3>{plan.name}</h3><p>{plan.description}</p><strong>{plan.assetLimit.toLocaleString()} assets</strong><ul>{plan.features.map((feature) => <li key={feature}><CheckIcon /> {feature}</li>)}</ul>
+          <div className="planCardTop"><span>{plan.audience}</span>{selectedPlan === plan.tier && <CheckIcon />}</div><h3>{plan.name}</h3><div className="planPrice"><strong>{plan.priceLabel}</strong><span>{plan.monthlyPrice > 0 ? "Free during beta" : "No payment required"}</span></div><p>{plan.description}</p><strong>{plan.assetLimit.toLocaleString()} assets</strong><ul>{plan.features.map((feature) => <li key={feature}><CheckIcon /> {feature}</li>)}</ul>
         </button>)}</div>
         <div className="selectedPlanBar"><div><strong>{currentPlan.name}</strong><span>{assets.length} of {currentPlan.assetLimit.toLocaleString()} assets used</span></div><button className="button primary" type="button" onClick={() => void save()} disabled={saving}>Save selected account type</button></div>
       </section>
@@ -221,6 +221,8 @@ export default function AccountPage() {
         <Link className="settingsCard toolLinkCard" href="/team"><UsersIcon /><span><strong>Team access</strong><small>Invite and manage users</small></span></Link>
         <Link className="settingsCard toolLinkCard" href="/import"><UploadIcon /><span><strong>Bulk import</strong><small>Upload a CSV tool list</small></span></Link>
         <Link className="settingsCard toolLinkCard" href="/transfer"><BuildingIcon /><span><strong>Accept transfer</strong><small>Claim an asset using a code</small></span></Link>
+        <Link className="settingsCard toolLinkCard" href="/shop/orders"><ShopIcon /><span><strong>Shop orders</strong><small>View your beta orders</small></span></Link>
+        <Link className="settingsCard toolLinkCard" href="/shop/admin"><ShopIcon /><span><strong>Shop admin</strong><small>Products, stock and orders</small></span></Link>
       </section>
 
       <section className="settingsCard accountActionsCard"><div><DownloadIcon /><span><strong>PDF asset register</strong><small>Readable summary for records or insurance.</small></span></div><button className="button secondary" type="button" onClick={() => void exportPdf()} disabled={exportingPdf}>{exportingPdf ? "Creating PDF…" : "Download PDF summary"}</button></section>
