@@ -1,10 +1,5 @@
-# ToolTrack V4.2
+# ToolTrack V4.3 Bulk Import Test
 
-This package was rebuilt as a complete clean project after the V4.1 patch sequence.
+Focused test build for CSV asset creation followed by bulk photo and ownership-document matching.
 
-Validation performed:
-
-- `npm run typecheck`
-- `npm run build`
-
-The project does not import `@vercel/analytics/next`.
+This is not the final V4.3 feature release. It exists to test the bulk attachment workflow before the remaining V4.3 shop and interface work is merged.

@@ -1,59 +1,27 @@
-# ToolTrack V4.2
+# ToolTrack V4.3 Bulk Import Test
 
-Clean full-project replacement for the ToolTrack beta.
+This focused build adds a three-step bulk workflow:
 
-## Included fixes
+1. Import assets from CSV.
+2. Upload multiple photos and PDF/image ownership documents.
+3. Match files automatically using serial numbers in filenames, with manual assignment for unmatched files.
 
-- Known-good Next.js root layout with no undeclared Vercel Analytics import.
-- Full V4.1 clean interface and stability feature set.
-- Team invitation acceptance routes.
-- Asset editing repairs and improved form spacing.
-- Dashboard and account cleanup.
-- Orders inside Account/Dashboard.
-- Shop administration route and platform-admin checks.
-- Custom ToolTrack 404 page.
-- Corrected Supabase shop compatibility migration for legacy `active`, `is_active`, and mandatory `sku` columns.
+## Test naming
 
-## Replace the local project
+- `TT-MAK-DHR242-0001-tool.jpg`
+- `TT-MAK-DHR242-0001-serial.jpg`
+- `TT-MAK-DHR242-0001-invoice.pdf`
 
-1. Back up `.env.local` if you use one locally.
-2. Remove the old project files from your local `tooltrack-beta` folder, but keep the `.git` folder.
-3. Copy everything from this V4.2 folder into `tooltrack-beta`.
-4. Do not commit `.env` or `.env.local`.
-5. In a terminal opened at the project root, run:
+One invoice can link to multiple imported assets when its filename contains both serial numbers.
+
+## Database
+
+No new Supabase migration is required. The build uses the existing `asset_photos`, `asset_documents`, `asset-photos`, and `ownership-documents` resources.
+
+## Local checks
 
 ```bash
-npm install
+npm ci
 npm run typecheck
 npm run build
 ```
-
-6. Commit and push the complete replacement to GitHub.
-
-## Supabase
-
-Existing V4 beta database:
-
-- Run `supabase/migrations/20260701_v4_2.sql` once.
-- The migration is designed to be rerunnable after a previous partial V4.1 migration.
-
-Fresh database:
-
-- Run `supabase/schema.sql`, followed by migrations in date order.
-
-## Required Vercel variables
-
-```env
-NEXT_PUBLIC_SUPABASE_URL=
-NEXT_PUBLIC_SUPABASE_ANON_KEY=
-SUPABASE_SERVICE_ROLE_KEY=
-NEXT_PUBLIC_APP_URL=https://tooltrack-beta-ikam.vercel.app
-BETA_ACCESS_CODE=
-RESEND_API_KEY=
-RESEND_FROM_EMAIL=ToolTrack <onboarding@resend.dev>
-RESEND_TEST_RECIPIENT=
-```
-
-## Deployment
-
-Push to the connected production branch. Vercel should deploy automatically. If needed, redeploy without the previous build cache.
