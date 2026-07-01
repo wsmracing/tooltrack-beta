@@ -2,7 +2,7 @@ import type { Metadata, Viewport } from "next";
 import "./globals.css";
 import { AppShell } from "@/components/app-shell";
 import { PwaRegister } from "@/components/pwa-register";
-import { Analytics } from "@vercel/analytics/next";
+
 
 export const metadata: Metadata = {
   title: { default: "ToolTrack", template: "%s | ToolTrack" },
@@ -24,8 +24,6 @@ export default function RootLayout({ children }: Readonly<{ children: React.Reac
       <body>
         <PwaRegister />
         <AppShell>{children}</AppShell>
-        <Analytics />
-      </body>
     </html>
   );
 }
