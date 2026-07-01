@@ -1,24 +1,59 @@
-# ToolTrack V4.1 Clean Fix Release
+# ToolTrack V4.2
 
-V4.1 is a stability and interface clean-up release for the ToolTrack beta.
+Clean full-project replacement for the ToolTrack beta.
 
-## Fixes
-- Working team invitation routes with sign-in return, accept and decline.
-- Asset edit trigger repair and corrected edit form spacing.
-- Clean dashboard overview; full asset management moved to `/assets`.
-- Account content split into clear tabs.
-- My Orders moved into Account and Dashboard.
-- Working beta shop, order history and Shop Administration.
-- Platform admin role table; the oldest beta account is bootstrapped as super-admin.
-- Friendly ToolTrack 404 page.
+## Included fixes
 
-## Existing project update
-1. Run `supabase/migrations/20260701_v4_1.sql` once in Supabase SQL Editor.
-2. Copy the update files over the existing repository.
-3. Commit and push to GitHub.
-4. Confirm `NEXT_PUBLIC_APP_URL` uses the surviving Vercel project URL.
+- Known-good Next.js root layout with no undeclared Vercel Analytics import.
+- Full V4.1 clean interface and stability feature set.
+- Team invitation acceptance routes.
+- Asset editing repairs and improved form spacing.
+- Dashboard and account cleanup.
+- Orders inside Account/Dashboard.
+- Shop administration route and platform-admin checks.
+- Custom ToolTrack 404 page.
+- Corrected Supabase shop compatibility migration for legacy `active`, `is_active`, and mandatory `sku` columns.
 
-## Important
-The V4.1 migration deliberately removes legacy custom triggers from `public.assets` and recreates only ToolTrack's updated-at, audit and plan-limit triggers. This repairs the beta database error involving an integer value being written into a boolean `is_active` column.
+## Replace the local project
 
-Shop checkout remains a no-payment prototype.
+1. Back up `.env.local` if you use one locally.
+2. Remove the old project files from your local `tooltrack-beta` folder, but keep the `.git` folder.
+3. Copy everything from this V4.2 folder into `tooltrack-beta`.
+4. Do not commit `.env` or `.env.local`.
+5. In a terminal opened at the project root, run:
+
+```bash
+npm install
+npm run typecheck
+npm run build
+```
+
+6. Commit and push the complete replacement to GitHub.
+
+## Supabase
+
+Existing V4 beta database:
+
+- Run `supabase/migrations/20260701_v4_2.sql` once.
+- The migration is designed to be rerunnable after a previous partial V4.1 migration.
+
+Fresh database:
+
+- Run `supabase/schema.sql`, followed by migrations in date order.
+
+## Required Vercel variables
+
+```env
+NEXT_PUBLIC_SUPABASE_URL=
+NEXT_PUBLIC_SUPABASE_ANON_KEY=
+SUPABASE_SERVICE_ROLE_KEY=
+NEXT_PUBLIC_APP_URL=https://tooltrack-beta-ikam.vercel.app
+BETA_ACCESS_CODE=
+RESEND_API_KEY=
+RESEND_FROM_EMAIL=ToolTrack <onboarding@resend.dev>
+RESEND_TEST_RECIPIENT=
+```
+
+## Deployment
+
+Push to the connected production branch. Vercel should deploy automatically. If needed, redeploy without the previous build cache.

@@ -643,6 +643,20 @@ create table if not exists public.shop_products (
  price_cents integer not null check(price_cents>=0), stock_quantity integer not null default 0 check(stock_quantity>=0), is_active boolean not null default true,
  created_at timestamptz not null default now(), updated_at timestamptz not null default now()
 );
+
+-- Compatibility with the earlier beta shop table, which used `active` instead of `is_active`.
+alter table public.shop_products
+  add column if not exists is_active boolean not null default true;
+do $$
+begin
+  if exists (
+    select 1 from information_schema.columns
+    where table_schema='public' and table_name='shop_products' and column_name='active'
+  ) then
+    execute 'update public.shop_products set is_active = coalesce(active, true)';
+  end if;
+end $$;
+
 create table if not exists public.shop_orders (
  id uuid primary key default gen_random_uuid(), user_id uuid not null references auth.users(id) on delete cascade,
  status text not null default 'pending' check(status in ('pending','processing','dispatched','completed','cancelled')), total_cents integer not null default 0 check(total_cents>=0),
