@@ -21,7 +21,7 @@ export async function POST(request: NextRequest) {
     to: user.email,
     subject: "ToolTrack email test",
     idempotencyKey: `email-test-${user.id}-${Math.floor(Date.now() / 60000)}`,
-    text: "Your ToolTrack email notifications are connected and ready for prototype testing.",
+    text: "Your ToolTrack email notifications are connected and ready for delivery verification.",
     html: `
       <div style="font-family:Arial,sans-serif;max-width:620px;margin:auto;color:#171717">
         <div style="border-top:6px solid #d71920;padding-top:20px">
@@ -41,6 +41,6 @@ export async function POST(request: NextRequest) {
     success: true,
     message: result.deliveredTo === user.email.toLowerCase()
       ? `Test email sent to ${user.email}.`
-      : `Prototype test email sent to ${result.deliveredTo}.`,
+      : `Notification test email sent to ${result.deliveredTo}.`,
   });
 }

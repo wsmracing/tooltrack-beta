@@ -18,12 +18,12 @@ type TransferPreview = {
 };
 
 function normaliseCode(value: string) {
-  return value.toUpperCase().replace(/[^A-Z0-9]/g, "").slice(0, 16);
+  return value.toUpperCase().replace(/[^A-Z0-9]/g, "").slice(0, 12);
 }
 
 function displayCode(value: string) {
   const clean = normaliseCode(value);
-  return clean.length > 4 ? `${clean.slice(0, 4)}-${clean.slice(4)}` : clean;
+  return clean.length > 8 ? `${clean.slice(0, 4)}-${clean.slice(4, 8)}-${clean.slice(8)}` : clean.length > 4 ? `${clean.slice(0, 4)}-${clean.slice(4)}` : clean;
 }
 
 function TransferContent() {
@@ -77,7 +77,7 @@ function TransferContent() {
       <h1>Claim an asset</h1>
       <p>Enter the code supplied by the current owner. An email invitation is optional.</p>
       <form className="formStack transferForm" onSubmit={check}>
-        <label>Transfer code<input value={code} onChange={(event) => setCode(displayCode(event.target.value))} placeholder="AB12-CD34" autoCapitalize="characters" required /></label>
+        <label>Transfer code<input value={code} onChange={(event) => setCode(displayCode(event.target.value))} placeholder="AB12-CD34-EF56" autoCapitalize="characters" required /></label>
         <button className="button primary" disabled={checking || !normaliseCode(code)}>{checking ? "Checking…" : "Check code"}</button>
       </form>
 

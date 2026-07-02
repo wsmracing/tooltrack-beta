@@ -1,21 +1,121 @@
 "use client";
-import Link from "next/link"; import {FormEvent,useEffect,useState} from "react"; import {useRouter} from "next/navigation"; import type {User} from "@supabase/supabase-js"; import {BuildingIcon,CheckIcon,DownloadIcon,MailIcon,ShieldIcon,ShopIcon,UserIcon,UsersIcon} from "@/components/icons"; import {getSupabaseBrowser,isSupabaseConfigured} from "@/lib/supabase-browser"; import type {Asset,Profile} from "@/lib/types"; import {getPlan,plans,type PlanTier} from "@/lib/plans";
-type Tab="profile"|"plan"|"business"|"orders"|"exports"|"security";
-export default function AccountPage(){const [user,setUser]=useState<User|null>(null),[profile,setProfile]=useState<Profile|null>(null),[assets,setAssets]=useState<Asset[]>([]),[displayName,setDisplayName]=useState(""),[businessName,setBusinessName]=useState(""),[phone,setPhone]=useState(""),[selectedPlan,setSelectedPlan]=useState<PlanTier>("starter"),[emailNotifications,setEmailNotifications]=useState(true),[teamNotifications,setTeamNotifications]=useState(true),[tab,setTab]=useState<Tab>("profile"),[isAdmin,setIsAdmin]=useState(false),[loading,setLoading]=useState(true),[saving,setSaving]=useState(false),[sendingTest,setSendingTest]=useState(false),[exportingPdf,setExportingPdf]=useState(false),[message,setMessage]=useState(""),[error,setError]=useState("");const router=useRouter();
- useEffect(()=>{if(!isSupabaseConfigured()){setError("Supabase is not configured.");setLoading(false);return}const s=getSupabaseBrowser();void(async()=>{const {data:auth}=await s.auth.getUser();setUser(auth.user);if(!auth.user){setLoading(false);return}const [p,a,ad]=await Promise.all([s.from("profiles").select("*").eq("id",auth.user.id).maybeSingle(),s.from("assets").select("*").order("registered_at"),s.from("platform_admins").select("role").eq("user_id",auth.user.id).maybeSingle()]);if(p.data){const x=p.data as Profile;setProfile(x);setDisplayName(x.display_name??"");setBusinessName(x.business_name??"");setPhone(x.phone??"");setSelectedPlan(x.plan_tier??"starter");setEmailNotifications(x.email_sighting_notifications!==false);setTeamNotifications(x.email_team_notifications!==false)}if(a.data)setAssets(a.data as Asset[]);setIsAdmin(Boolean(ad.data));const hash=window.location.hash.replace("#","") as Tab;if(["profile","plan","business","orders","exports","security"].includes(hash))setTab(hash);setLoading(false)})()},[]);
- async function ensureOrg(t:PlanTier,name:string){if(!user)return null;const plan=getPlan(t);if(!plan.teamTools)return null;const s=getSupabaseBrowser();if(profile?.active_organization_id){await s.from("organizations").update({name,account_type:plan.accountType,plan_tier:plan.tier}).eq("id",profile.active_organization_id);return profile.active_organization_id}const {data,error:e}=await s.from("organizations").insert({owner_id:user.id,name,account_type:plan.accountType,plan_tier:plan.tier}).select("id").single();if(e)throw e;await s.from("organization_members").insert({organization_id:data.id,user_id:user.id,role:"owner",status:"active"});return data.id as string}
- async function save(e?:FormEvent){e?.preventDefault();if(!user)return;setSaving(true);setError("");setMessage("");try{const s=getSupabaseBrowser(),plan=getPlan(selectedPlan),org=await ensureOrg(selectedPlan,businessName.trim()||`${displayName.trim()||"My"} ToolTrack`);const payload={id:user.id,display_name:displayName.trim()||null,business_name:businessName.trim()||null,phone:phone.trim()||null,email_sighting_notifications:emailNotifications,email_team_notifications:teamNotifications,account_type:plan.accountType,plan_tier:plan.tier,active_organization_id:plan.teamTools?org:null};const {data,error:e2}=await s.from("profiles").upsert(payload).select("*").single();if(e2)throw e2;setProfile(data as Profile);setMessage("Account settings saved.")}catch(c){setError(c instanceof Error?c.message:"Could not save the account.")}finally{setSaving(false)}}
- async function logout(){if(!confirm("Log out of ToolTrack?"))return;await getSupabaseBrowser().auth.signOut();router.replace("/");router.refresh()}
- async function testEmail(){if(!user)return;setSendingTest(true);setError("");setMessage("");try{const {data:sess}=await getSupabaseBrowser().auth.getSession();const token=sess.session?.access_token;if(!token)throw new Error("Your session has expired.");const r=await fetch("/api/email/test",{method:"POST",headers:{Authorization:`Bearer ${token}`}}),b=await r.json();if(!r.ok)throw new Error(b.error||"Could not send test email.");setMessage(b.message||"Test email sent.")}catch(c){setError(c instanceof Error?c.message:"Could not send test email.")}finally{setSendingTest(false)}}
- async function pdf(){if(!user)return;setExportingPdf(true);setError("");setMessage("");try{const s=getSupabaseBrowser();const [ar,tr,si]=await Promise.all([s.from("assets").select("*").order("registered_at"),s.from("theft_reports").select("*").order("reported_at"),s.from("sightings").select("*").order("created_at")]);const fail=[ar,tr,si].find(r=>r.error);if(fail?.error)throw fail.error;const {jsPDF}=await import("jspdf");const doc=new jsPDF({unit:"mm",format:"a4"});let y=18;const line=(v:string,size=10,b=false)=>{doc.setFont("helvetica",b?"bold":"normal");doc.setFontSize(size);const ls=doc.splitTextToSize(v,178);if(y+ls.length*5.2>282){doc.addPage();y=18}doc.text(ls,16,y);y+=ls.length*5.2+2};doc.setTextColor(215,25,32);line("ToolTrack Asset Register",20,true);doc.setTextColor(40,40,40);line(`Generated: ${new Date().toLocaleString("en-IE")}`,9);line(`Account: ${displayName.trim()||user.email||"ToolTrack user"}`,11,true);if(businessName.trim())line(`Business: ${businessName.trim()}`);for(const a of ar.data??[]){line("────────────────────────────────",8);line(`${a.make} ${a.model}`,12,true);line(`Category: ${a.category} | Status: ${String(a.status).toUpperCase()}`,9);line(`Serial: ${a.serial_original}`,10,true);if(a.storage_location)line(`Storage: ${a.storage_location}`,9);if(a.estimated_value!=null)line(`Estimated value: €${Number(a.estimated_value).toFixed(2)}`,9);const reports=(tr.data??[]).filter(r=>r.asset_id===a.id);reports.forEach(r=>line(`Theft report ${r.public_reference}: ${r.location_area}`,9));const count=(si.data??[]).filter(x=>x.asset_id===a.id).length;if(count)line(`Sightings: ${count}`,9,true)}line("This summary supports record keeping and insurance discussions, but is not by itself proof of legal ownership.",8);doc.save(`tooltrack-asset-register-${new Date().toISOString().slice(0,10)}.pdf`);setMessage("PDF downloaded.")}catch(c){setError(c instanceof Error?c.message:"Could not create PDF.")}finally{setExportingPdf(false)}}
- async function remove(){if(!user||!confirm("Delete your ToolTrack account and all beta data?"))return;if(prompt("Type DELETE to confirm.")!=="DELETE")return;setSaving(true);const {data:sess}=await getSupabaseBrowser().auth.getSession();const token=sess.session?.access_token;if(!token){setError("Session expired.");setSaving(false);return}const r=await fetch("/api/account/delete",{method:"DELETE",headers:{Authorization:`Bearer ${token}`}}),b=await r.json();if(!r.ok){setError(b.error||"Could not delete account.");setSaving(false);return}await getSupabaseBrowser().auth.signOut();router.replace("/");router.refresh()}
- if(loading)return <div className="pageWidth pagePad"><div className="skeletonCard"/></div>;if(!user)return <div className="pageWidth pagePad narrowPage"><div className="emptyPanel"><UserIcon/><h1>Sign in to manage your account</h1><Link className="button primary" href="/login">Sign in</Link></div></div>;const current=getPlan(selectedPlan);
- const tabs:[Tab,string][]=[["profile","Profile"],["plan","Plan"],["business","Team"],["orders","Orders"],["exports","Exports & email"],["security","Security"]];
- return <div className="pageWidth pagePad accountClean"><Link className="backLink" href="/dashboard">← Dashboard</Link><div className="sectionTitleRow"><div><p className="eyebrow red">Account</p><h1>Your ToolTrack account</h1><p className="muted">Profile, plan, orders and security in one place.</p></div><UserIcon/></div>{message&&<div className="notice success">{message}</div>}{error&&<div className="notice danger">{error}</div>}<nav className="accountTabs">{tabs.map(([id,label])=><button key={id} className={tab===id?"active":""} onClick={()=>{setTab(id);history.replaceState(null,"",`#${id}`)}}>{label}</button>)}</nav>
- {tab==="profile"&&<form className="settingsCard formStack tabPanel" onSubmit={save}><div><h2>Profile</h2><p className="muted">The name shown on your dashboard and reports.</p></div><div className="formGrid two"><label>Display name<input value={displayName} onChange={e=>setDisplayName(e.target.value)} autoComplete="name"/></label><label>Phone (optional)<input value={phone} onChange={e=>setPhone(e.target.value)} inputMode="tel"/></label></div><label>Business or trading name (optional)<input value={businessName} onChange={e=>setBusinessName(e.target.value)} autoComplete="organization"/></label><label>Email address<input value={user.email??""} disabled/></label><div className="toggleStack"><label className="toggleRow"><input type="checkbox" checked={emailNotifications} onChange={e=>setEmailNotifications(e.target.checked)}/><span><strong>Email me about sightings</strong><small>The reporter never sees your address.</small></span></label><label className="toggleRow"><input type="checkbox" checked={teamNotifications} onChange={e=>setTeamNotifications(e.target.checked)}/><span><strong>Email me about team and transfer activity</strong><small>Invites, access changes and accepted transfers.</small></span></label></div><div className="cleanFormActions"><button className="button primary" disabled={saving}>{saving?"Saving…":"Save profile"}</button></div></form>}
- {tab==="plan"&&<section className="tabPanel" id="plan"><div className="cleanSectionHeader"><div><h2>Account plan</h2><p>Prototype plans are unlocked and no payment is taken.</p></div></div><div className="planGrid cleanPlanGrid">{plans.map(p=><button type="button" className={`planCard ${selectedPlan===p.tier?"selected":""}`} key={p.tier} onClick={()=>setSelectedPlan(p.tier)}><div className="planCardTop"><span>{p.audience}</span>{selectedPlan===p.tier&&<CheckIcon/>}</div><h3>{p.name}</h3><p>{p.description}</p><strong>{p.assetLimit.toLocaleString()} assets</strong></button>)}</div><div className="selectedPlanBar"><div><strong>{current.name}</strong><span>{assets.length} of {current.assetLimit.toLocaleString()} assets used</span></div><button className="button primary" onClick={()=>void save()} disabled={saving}>Save plan</button></div></section>}
- {tab==="business"&&<section className="tabPanel"><div className="cleanSectionHeader"><div><h2>Team</h2><p>Manage shared access for business and fleet accounts.</p></div></div><div className="cleanActionGrid"><Link href="/team"><UsersIcon/><span><strong>Team access</strong><small>Invites and permissions</small></span></Link>{isAdmin&&<Link href="/shop/admin"><ShieldIcon/><span><strong>Shop administration</strong><small>Products, stock and orders</small></span></Link>}</div></section>}
- {tab==="orders"&&<section className="tabPanel"><div className="settingsCard accountActionsCard"><div><ShopIcon/><span><strong>My orders</strong><small>View beta shop orders and their status.</small></span></div><Link className="button primary" href="/account/orders">Open orders</Link></div></section>}
- {tab==="exports"&&<section className="tabPanel actionStack"><div className="settingsCard accountActionsCard"><div><DownloadIcon/><span><strong>PDF asset register</strong><small>Readable summary for records or insurance.</small></span></div><button className="button secondary" onClick={()=>void pdf()} disabled={exportingPdf}>{exportingPdf?"Creating PDF…":"Download PDF"}</button></div><div className="settingsCard accountActionsCard"><div><MailIcon/><span><strong>Test email delivery</strong><small>Confirm ToolTrack can send notifications.</small></span></div><button className="button secondary" onClick={()=>void testEmail()} disabled={sendingTest}>{sendingTest?"Sending…":"Send test email"}</button></div></section>}
- {tab==="security"&&<section className="tabPanel actionStack"><div className="settingsCard accountActionsCard"><div><ShieldIcon/><span><strong>Session</strong><small>Sign out on this device.</small></span></div><button className="button secondary" onClick={()=>void logout()}>Log out</button></div><div className="dangerZone"><h2>Delete beta account</h2><p>This permanently removes your account and linked beta data.</p><button className="button dangerButton" onClick={()=>void remove()} disabled={saving}>Delete account</button></div></section>}
- </div>}
+
+import Link from "next/link";
+import { FormEvent, useEffect, useState } from "react";
+import { useRouter } from "next/navigation";
+import type { User } from "@supabase/supabase-js";
+import { ShieldIcon, ShopIcon, UserIcon, UsersIcon } from "@/components/icons";
+import { getSupabaseBrowser, isSupabaseConfigured } from "@/lib/supabase-browser";
+import type { Profile } from "@/lib/types";
+import { getPlan, plans, type PlanTier } from "@/lib/plans";
+import { friendlyError } from "@/lib/user-errors";
+
+export default function AccountPage() {
+  const [user, setUser] = useState<User | null>(null);
+  const [profile, setProfile] = useState<Profile | null>(null);
+  const [displayName, setDisplayName] = useState("");
+  const [businessName, setBusinessName] = useState("");
+  const [phone, setPhone] = useState("");
+  const [selectedPlan, setSelectedPlan] = useState<PlanTier>("starter");
+  const [emailNotifications, setEmailNotifications] = useState(true);
+  const [teamNotifications, setTeamNotifications] = useState(true);
+  const [isAdmin, setIsAdmin] = useState(false);
+  const [loading, setLoading] = useState(true);
+  const [saving, setSaving] = useState(false);
+  const [message, setMessage] = useState("");
+  const [error, setError] = useState("");
+  const router = useRouter();
+
+  useEffect(() => {
+    if (!isSupabaseConfigured()) { setError("ToolTrack is not connected to its database."); setLoading(false); return; }
+    const supabase = getSupabaseBrowser();
+    void (async () => {
+      const { data: auth } = await supabase.auth.getUser(); setUser(auth.user);
+      if (!auth.user) { setLoading(false); return; }
+      const [profileResponse, adminResponse] = await Promise.all([
+        supabase.from("profiles").select("*").eq("id", auth.user.id).maybeSingle(),
+        supabase.from("platform_admins").select("role").eq("user_id", auth.user.id).maybeSingle(),
+      ]);
+      if (profileResponse.data) {
+        const value = profileResponse.data as Profile; setProfile(value); setDisplayName(value.display_name ?? ""); setBusinessName(value.business_name ?? ""); setPhone(value.phone ?? ""); setSelectedPlan(value.plan_tier ?? "starter"); setEmailNotifications(value.email_sighting_notifications !== false); setTeamNotifications(value.email_team_notifications !== false);
+      }
+      setIsAdmin(Boolean(adminResponse.data)); setLoading(false);
+    })();
+  }, []);
+
+  async function ensureOrganization(tier: PlanTier, name: string) {
+    if (!user) return null;
+    const plan = getPlan(tier);
+    if (!plan.teamTools) return null;
+    const supabase = getSupabaseBrowser();
+    if (profile?.active_organization_id) {
+      const { error: updateError } = await supabase.from("organizations").update({ name, account_type: plan.accountType, plan_tier: plan.tier }).eq("id", profile.active_organization_id);
+      if (updateError) throw updateError;
+      return profile.active_organization_id;
+    }
+    const { data, error: organizationError } = await supabase.from("organizations").insert({ owner_id: user.id, name, account_type: plan.accountType, plan_tier: plan.tier }).select("id").single();
+    if (organizationError) throw organizationError;
+    const { error: memberError } = await supabase.from("organization_members").insert({ organization_id: data.id, user_id: user.id, role: "owner", status: "active" });
+    if (memberError) throw memberError;
+    return data.id as string;
+  }
+
+  async function save(event?: FormEvent) {
+    event?.preventDefault(); if (!user) return;
+    setSaving(true); setError(""); setMessage("");
+    try {
+      const supabase = getSupabaseBrowser();
+      const plan = getPlan(selectedPlan);
+      const organization = await ensureOrganization(selectedPlan, businessName.trim() || `${displayName.trim() || "My"} ToolTrack`);
+      const payload = { id: user.id, display_name: displayName.trim() || null, business_name: businessName.trim() || null, phone: phone.trim() || null, email_sighting_notifications: emailNotifications, email_team_notifications: teamNotifications, account_type: plan.accountType, plan_tier: plan.tier, active_organization_id: plan.teamTools ? organization : null };
+      const { data, error: saveError } = await supabase.from("profiles").upsert(payload).select("*").single();
+      if (saveError) throw saveError;
+      setProfile(data as Profile); setMessage("Account settings saved.");
+    } catch (caught) { setError(friendlyError(caught, "Your account settings could not be saved.")); }
+    finally { setSaving(false); }
+  }
+
+  async function logout() {
+    if (!window.confirm("Log out of ToolTrack?")) return;
+    await getSupabaseBrowser().auth.signOut(); router.replace("/"); router.refresh();
+  }
+
+  async function remove() {
+    if (!user || !window.confirm("Delete your ToolTrack account and linked data?")) return;
+    if (window.prompt("Type DELETE to confirm.") !== "DELETE") return;
+    setSaving(true); setError("");
+    const { data: session } = await getSupabaseBrowser().auth.getSession();
+    const token = session.session?.access_token;
+    if (!token) { setError("Your session has expired. Sign in again."); setSaving(false); return; }
+    const response = await fetch("/api/account/delete", { method: "DELETE", headers: { Authorization: `Bearer ${token}` } });
+    const body = await response.json();
+    if (!response.ok) { setError(body.error || "The account could not be deleted."); setSaving(false); return; }
+    await getSupabaseBrowser().auth.signOut(); router.replace("/"); router.refresh();
+  }
+
+  if (loading) return <div className="pageWidth pagePad"><div className="skeletonCard" /></div>;
+  if (!user) return <div className="pageWidth pagePad narrowPage"><div className="emptyPanel"><UserIcon /><h1>Sign in to manage your account</h1><Link className="button primary" href="/login">Sign in</Link></div></div>;
+  const current = getPlan(selectedPlan);
+
+  return <div className="pageWidth pagePad accountSimple">
+    <Link className="backLink" href="/dashboard">← Dashboard</Link>
+    <div className="sectionTitleRow"><div><h1>Account</h1><p className="muted">Profile, notifications and security.</p></div><UserIcon /></div>
+    {message && <div className="notice success">{message}</div>}{error && <div className="notice danger">{error}</div>}
+
+    <form className="accountSections" onSubmit={save}>
+      <section className="settingsCard formStack"><div><h2>Profile</h2><p className="muted">Used on your dashboard and reports you choose to download.</p></div><div className="formGrid two"><label>Display name<input value={displayName} onChange={(event) => setDisplayName(event.target.value)} autoComplete="name" /></label><label>Phone (optional)<input value={phone} onChange={(event) => setPhone(event.target.value)} inputMode="tel" autoComplete="tel" /></label></div><label>Business or trading name (optional)<input value={businessName} onChange={(event) => setBusinessName(event.target.value)} autoComplete="organization" /></label><label>Email address<input value={user.email ?? ""} disabled /></label></section>
+
+      <section className="settingsCard formStack"><div><h2>Account type</h2><p className="muted">Choose the workspace that matches how you manage equipment.</p></div><label>Account type<select value={selectedPlan} onChange={(event) => setSelectedPlan(event.target.value as PlanTier)}>{plans.map((plan) => <option key={plan.tier} value={plan.tier}>{plan.name} — up to {plan.assetLimit.toLocaleString()} assets</option>)}</select></label><div className="accountTypeSummary"><strong>{current.name}</strong><span>{current.description}</span></div></section>
+
+      <section className="settingsCard formStack"><div><h2>Notifications</h2><p className="muted">Choose which important activity reaches your email.</p></div><div className="toggleStack"><label className="toggleRow"><input type="checkbox" checked={emailNotifications} onChange={(event) => setEmailNotifications(event.target.checked)} /><span><strong>Sighting reports</strong><small>The reporter never sees your address.</small></span></label><label className="toggleRow"><input type="checkbox" checked={teamNotifications} onChange={(event) => setTeamNotifications(event.target.checked)} /><span><strong>Team and transfer activity</strong><small>Invitations, access changes and completed transfers.</small></span></label></div></section>
+
+      <div className="cleanFormActions accountSaveBar"><button className="button primary" disabled={saving}>{saving ? "Saving…" : "Save account"}</button></div>
+    </form>
+
+    <section className="settingsCard accountLinks"><h2>Related areas</h2><div className="cleanActionGrid">{current.teamTools && <Link href="/team"><UsersIcon /><span><strong>Team access</strong><small>Invitations and permissions</small></span></Link>}<Link href="/account/orders"><ShopIcon /><span><strong>My orders</strong><small>Order requests and status</small></span></Link>{isAdmin && <Link href="/shop/admin"><ShieldIcon /><span><strong>Shop administration</strong><small>Products and orders</small></span></Link>}</div></section>
+
+    <section className="settingsCard securityCard"><div><ShieldIcon /><span><h2>Security</h2><p>Log out on this device. This option is also always visible in the main menu.</p></span></div><button className="button secondary logoutButton" onClick={() => void logout()}>Log out</button></section>
+
+    <section className="dangerZone"><h2>Delete account</h2><p>Permanently removes your account and linked data, subject to any records ToolTrack must retain for disputes or legal obligations.</p><button className="button dangerButton" onClick={() => void remove()} disabled={saving}>Delete account</button></section>
+  </div>;
+}

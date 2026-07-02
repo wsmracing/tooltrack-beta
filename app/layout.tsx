@@ -13,7 +13,7 @@ export const metadata: Metadata = {
     template: "%s | ToolTrack",
   },
   description:
-    "Register tools, store proof of ownership, report theft and check serial numbers before buying used equipment.",
+    "Register tools, store purchase and ownership evidence, report theft and check serial numbers before buying used equipment.",
   manifest: "/manifest.webmanifest",
   icons: {
     icon: "/icon-192.png",

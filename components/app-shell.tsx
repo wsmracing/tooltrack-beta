@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { usePathname, useRouter } from "next/navigation";
 import { Brand } from "./brand";
 import {
@@ -18,29 +18,46 @@ import {
 } from "./icons";
 import { getSupabaseBrowser, isSupabaseConfigured } from "@/lib/supabase-browser";
 
-const primaryNav = [
-  { href: "/", label: "Home", icon: HomeIcon },
-  { href: "/lookup", label: "Lookup", icon: SearchIcon },
-  { href: "/assets", label: "Assets", icon: ToolboxIcon },
-  { href: "/register", label: "Add", icon: PlusIcon },
-];
-
 export function AppShell({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
   const router = useRouter();
   const [signedIn, setSignedIn] = useState(false);
+  const [authChecked, setAuthChecked] = useState(false);
+  const [teamAvailable, setTeamAvailable] = useState(false);
   const [menuOpen, setMenuOpen] = useState(false);
   const closeMenu = useCallback(() => setMenuOpen(false), []);
   const accountHref = signedIn ? "/account" : "/login";
-  const isActive = (href: string) => href === "/" ? pathname === "/" : pathname.startsWith(href);
+  const homeHref = signedIn ? "/dashboard" : "/";
+
+  const primaryNav = useMemo(() => [
+    { href: homeHref, label: "Home", icon: HomeIcon },
+    { href: "/lookup", label: "Check", icon: SearchIcon },
+    { href: "/assets", label: "Assets", icon: ToolboxIcon },
+    { href: "/register", label: "Add", icon: PlusIcon },
+  ], [homeHref]);
+
+  const isActive = (href: string) => {
+    if (href === "/") return pathname === "/";
+    if (href === "/dashboard") return pathname === "/dashboard";
+    return pathname.startsWith(href);
+  };
 
   useEffect(closeMenu, [pathname, closeMenu]);
 
   useEffect(() => {
-    if (!isSupabaseConfigured()) return;
+    if (!isSupabaseConfigured()) { setAuthChecked(true); return; }
     const supabase = getSupabaseBrowser();
-    void supabase.auth.getUser().then(({ data }) => setSignedIn(Boolean(data.user)));
-    const { data } = supabase.auth.onAuthStateChange((_event, session) => setSignedIn(Boolean(session?.user)));
+    const syncAccount = async (userId?: string) => {
+      setSignedIn(Boolean(userId));
+      if (!userId) { setTeamAvailable(false); setAuthChecked(true); return; }
+      const { data: profile } = await supabase.from("profiles").select("plan_tier").eq("id", userId).maybeSingle();
+      setTeamAvailable(profile?.plan_tier === "team" || profile?.plan_tier === "fleet");
+      setAuthChecked(true);
+    };
+    void supabase.auth.getUser().then(({ data }) => void syncAccount(data.user?.id));
+    const { data } = supabase.auth.onAuthStateChange((_event, session) => {
+      void syncAccount(session?.user?.id);
+    });
     return () => data.subscription.unsubscribe();
   }, []);
 
@@ -64,6 +81,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
     if (!window.confirm("Log out of ToolTrack?")) return;
     closeMenu();
     if (isSupabaseConfigured()) await getSupabaseBrowser().auth.signOut();
+    setSignedIn(false);
     router.replace("/");
     router.refresh();
   }
@@ -78,13 +96,18 @@ export function AppShell({ children }: { children: React.ReactNode }) {
   return <>
     <header className="siteHeader">
       <div className="headerInner">
-        <Brand onClick={closeMenu} />
+        <Brand href={homeHref} onClick={closeMenu} />
         <nav className="desktopNav" aria-label="Primary navigation">
-          <Link href="/lookup">Check an asset</Link>
-          {signedIn && <Link href="/dashboard">Dashboard</Link>}
-          <Link href="/assets">My assets</Link>
-          <Link href="/register">Register</Link>
-          <Link href="/shop">Shop</Link>
+          {signedIn ? <>
+            <Link href="/dashboard">Dashboard</Link>
+            <Link href="/lookup">Check</Link>
+            <Link href="/assets">Assets</Link>
+            <Link href="/register">Add asset</Link>
+          </> : <>
+            <Link href="/lookup">Check</Link>
+            <Link href="/how-it-works">How it works</Link>
+            <Link href="/login">Sign in</Link>
+          </>}
         </nav>
         <div className="headerActions">
           <Link className="headerAccount" href={accountHref} aria-label={signedIn ? "Open account" : "Sign in"} onClick={closeMenu}>
@@ -99,18 +122,22 @@ export function AppShell({ children }: { children: React.ReactNode }) {
       {menuOpen && <>
         <button className="mobileDrawerBackdrop" type="button" aria-label="Close menu" onClick={closeMenu} />
         <nav className="mobileDrawer" aria-label="More navigation">
-          {signedIn && drawerLink("/team", "Team", UsersIcon)}
-          {drawerLink("/transfer", "Claim transferred asset", TransferIcon)}
+          {signedIn && drawerLink("/transfer", "Claim transferred asset", TransferIcon)}
+          {signedIn && teamAvailable && drawerLink("/team", "Team", UsersIcon)}
           {signedIn && drawerLink("/account/orders", "My orders", ShopIcon)}
           {drawerLink("/shop", "Shop", ShopIcon)}
           {drawerLink("/help", "Help & support")}
-          {signedIn ? <button type="button" className="mobileLogout" onClick={() => void logout()}>Log out</button> : drawerLink("/login", "Sign in")}
+          {signedIn ? <button type="button" className="mobileLogout" onClick={() => void logout()}>Log out</button> : <>
+            {drawerLink("/login?mode=signup", "Create account", UserIcon)}
+            {drawerLink("/login", "Sign in", UserIcon)}
+          </>}
         </nav>
       </>}
     </header>
     <main className="siteMain">{children}</main>
-    <nav className="bottomNav" aria-label="Mobile navigation">
+    <footer className="siteFooter"><div className="pageWidth"><span>ToolTrack</span><nav><Link href="/privacy">Privacy</Link><Link href="/terms">Terms</Link><Link href="/contact">Contact</Link></nav></div></footer>
+    {signedIn && authChecked && <nav className="bottomNav" aria-label="Mobile navigation">
       {primaryNav.map(({ href, label, icon: Icon }) => <Link key={href} href={href} className={isActive(href) ? "active" : ""}><Icon /><span>{label}</span></Link>)}
-    </nav>
+    </nav>}
   </>;
 }

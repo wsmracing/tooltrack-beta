@@ -3,8 +3,14 @@ import { normaliseOptionalUrl, normaliseSerial } from "@/lib/normalise";
 import { getSupabaseAdmin } from "@/lib/supabase-server";
 import { getPublicAppUrl } from "@/lib/app-url";
 import { escapeEmailHtml, sendToolTrackEmail } from "@/lib/email";
+import { checkRateLimit, requestIp } from "@/lib/rate-limit";
 
 export const runtime = "nodejs";
+
+
+function cleanText(value: unknown, maxLength: number): string {
+  return typeof value === "string" ? value.trim().replace(/\s+/g, " ").slice(0, maxLength) : "";
+}
 
 type SightingPayload = {
   serial?: unknown;
@@ -12,30 +18,12 @@ type SightingPayload = {
   details?: unknown;
   listingUrl?: unknown;
   reporterEmail?: unknown;
+  sourcePlatform?: unknown;
+  sellerUsername?: unknown;
+  listingTitle?: unknown;
+  askingPrice?: unknown;
   website?: unknown;
 };
-
-type RateEntry = { count: number; resetAt: number };
-const rateStore = new Map<string, RateEntry>();
-
-function cleanText(value: unknown, maxLength: number) {
-  return typeof value === "string" ? value.trim().slice(0, maxLength) : "";
-}
-
-function rateLimited(request: NextRequest) {
-  const key = request.headers.get("x-forwarded-for")?.split(",")[0]?.trim()
-    || request.headers.get("x-real-ip")
-    || "unknown";
-  const now = Date.now();
-  const existing = rateStore.get(key);
-  if (!existing || existing.resetAt <= now) {
-    rateStore.set(key, { count: 1, resetAt: now + 15 * 60 * 1000 });
-    return false;
-  }
-  existing.count += 1;
-  rateStore.set(key, existing);
-  return existing.count > 5;
-}
 
 async function sendOwnerEmail({
   to,
@@ -106,7 +94,7 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ success: true }, { status: 201 });
   }
 
-  if (rateLimited(request)) {
+  if (!checkRateLimit(`sighting:${requestIp(request.headers)}`, 5, 15 * 60_000).allowed) {
     return NextResponse.json({ error: "Too many reports were submitted. Please wait and try again." }, { status: 429 });
   }
 
@@ -116,10 +104,15 @@ export async function POST(request: NextRequest) {
   const rawListingUrl = cleanText(payload.listingUrl, 500);
   const listingUrl = rawListingUrl ? normaliseOptionalUrl(rawListingUrl) : null;
   const reporterEmail = cleanText(payload.reporterEmail, 254).toLowerCase() || null;
+  const sourcePlatform = cleanText(payload.sourcePlatform, 80);
+  const sellerUsername = cleanText(payload.sellerUsername, 160) || null;
+  const listingTitle = cleanText(payload.listingTitle, 240) || null;
+  const askingPriceValue = typeof payload.askingPrice === "string" || typeof payload.askingPrice === "number" ? Number(payload.askingPrice) : NaN;
+  const askingPriceCents = Number.isFinite(askingPriceValue) && askingPriceValue >= 0 ? Math.round(askingPriceValue * 100) : null;
 
-  if (!serial || !locationArea || !details) {
+  if (!serial || !sourcePlatform || !locationArea || !details) {
     return NextResponse.json(
-      { error: "Serial number, location and sighting details are required." },
+      { error: "Source, location and sighting details are required." },
       { status: 400 },
     );
   }
@@ -171,6 +164,10 @@ export async function POST(request: NextRequest) {
     reporter_email: reporterEmail,
     location_area: locationArea,
     listing_url: listingUrl,
+    source_platform: sourcePlatform,
+    seller_username: sellerUsername,
+    listing_title: listingTitle,
+    asking_price_cents: askingPriceCents,
     details,
     notification_status: "pending",
   }).select("id").single();
@@ -208,7 +205,7 @@ export async function POST(request: NextRequest) {
           make: asset.make,
           model: asset.model,
           serial: asset.serial_original,
-          locationArea,
+          locationArea: `${sourcePlatform}${locationArea ? ` · ${locationArea}` : ""}`,
           details,
           listingUrl,
           reporterEmail,

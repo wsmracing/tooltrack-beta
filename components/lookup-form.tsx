@@ -22,9 +22,9 @@ export function LookupForm({ compact = false, initialValue = "" }: { compact?: b
       <label htmlFor={compact ? "lookup-compact" : "lookup-main"}>Serial number</label>
       <div className="lookupInputRow">
         <div className="inputWithIcon"><SearchIcon /><input id={compact ? "lookup-compact" : "lookup-main"} value={serial} onChange={(event) => setSerial(event.target.value.toUpperCase())} onBlur={() => setSerial(displaySerial(serial))} placeholder="Enter serial number" autoCapitalize="characters" autoComplete="off" /></div>
-        <button className="button primary" type="submit">Check serial number</button>
+        <button className="button primary" type="submit">Check serial</button>
       </div>
-      {!compact && <p className="fieldHint">Spaces and dashes are ignored. Public lookup is free.</p>}
+      {!compact && <p className="fieldHint">Spaces, dashes and letter case are ignored.</p>}
     </form>
   );
 }

@@ -40,7 +40,7 @@ export async function sendToolTrackEmail({
   const isRerouted = Boolean(testRecipient && testRecipient !== to.trim().toLowerCase());
 
   const rerouteNotice = isRerouted
-    ? `<div style="padding:12px 14px;margin-bottom:18px;border:1px solid #e7b8ba;border-radius:8px;background:#fff4f4;color:#741319"><strong>Prototype email reroute</strong><br>This message was intended for ${escapeEmailHtml(to)}.</div>`
+    ? `<div style="padding:12px 14px;margin-bottom:18px;border:1px solid #e7b8ba;border-radius:8px;background:#fff4f4;color:#741319"><strong>Closed beta email reroute</strong><br>This message was intended for ${escapeEmailHtml(to)}.</div>`
     : "";
 
   const response = await fetch("https://api.resend.com/emails", {
@@ -58,7 +58,7 @@ export async function sendToolTrackEmail({
       text,
       tags: [
         { name: "application", value: "tooltrack" },
-        { name: "environment", value: testRecipient ? "prototype" : "owner" },
+        { name: "environment", value: testRecipient ? "closed-beta" : "production" },
       ],
     }),
   });

@@ -1,3 +1,5 @@
-# ToolTrack V4.4
+# ToolTrack V4.5
 
-Mobile-first stability and cleanup release: streamlined navigation, simpler dashboard/homepage, reliable checkout, manual transfer claims, canonical email links, cleaner shop admin, friendly errors and support pages.
+Final web-foundation release before native Android development.
+
+V4.5 removes mobile clutter, adds seller-control confirmation and sale states, strengthens transfer handling, improves marketplace sighting reports, adds Garda/insurance PDF exports, and introduces practical security hardening for the closed beta.

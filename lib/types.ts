@@ -1,6 +1,8 @@
 import type { AccountType, PlanTier } from "@/lib/plans";
 
 export type AssetStatus = "safe" | "stolen" | "recovered" | "transfer";
+export type MarketStatus = "not_for_sale" | "for_sale" | "disputed";
+export type VerificationLevel = "registered" | "evidence_supplied" | "retailer_verified" | "transfer_history" | "disputed";
 
 export interface Asset {
   id: string;
@@ -25,6 +27,9 @@ export interface Asset {
   catalogue_item_id: string | null;
   product_barcode: string | null;
   status: AssetStatus;
+  market_status?: MarketStatus | null;
+  sale_expires_at?: string | null;
+  verification_level?: VerificationLevel | null;
   registered_at: string;
   updated_at: string;
 }
@@ -110,6 +115,10 @@ export interface Sighting {
   reporter_email: string | null;
   location_area: string;
   listing_url: string | null;
+  source_platform?: string | null;
+  seller_username?: string | null;
+  listing_title?: string | null;
+  asking_price_cents?: number | null;
   details: string;
   status: "new" | "reviewed" | "dismissed";
   notification_status: "pending" | "sent" | "skipped" | "failed";
@@ -123,14 +132,20 @@ export interface Sighting {
   } | null;
 }
 
+export type PublicLookupState = "none" | "registered" | "for_sale" | "transfer_pending" | "stolen" | "recovered" | "disputed";
+
 export interface PublicLookupResult {
   found: boolean;
   status: AssetStatus | "none";
+  lookupState: PublicLookupState;
   make?: string;
   model?: string;
   category?: string;
   serialMasked?: string;
   registeredAt?: string;
+  marketStatus?: MarketStatus;
+  saleExpiresAt?: string;
+  verificationLevel?: VerificationLevel;
   reportedAt?: string;
   locationArea?: string;
   publicReference?: string;
@@ -227,5 +242,15 @@ export interface ShopOrder {
 export interface PlatformAdmin {
   user_id: string;
   role: "admin" | "super_admin";
+  created_at: string;
+}
+
+export interface SellerConfirmationChallenge {
+  id: string;
+  public_token: string;
+  asset_id: string;
+  status: "pending" | "confirmed" | "expired";
+  expires_at: string;
+  confirmed_at: string | null;
   created_at: string;
 }

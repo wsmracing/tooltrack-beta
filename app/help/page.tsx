@@ -7,7 +7,7 @@ export default function HelpPage() {
       <Link href="/how-it-works"><strong>How ToolTrack works</strong><span>Registration, public lookup and stolen reports</span></Link>
       <Link href="/transfer"><strong>Claim a transferred asset</strong><span>Enter a code supplied by the current owner</span></Link>
       <Link href="/disputes"><strong>Dispute or correct a record</strong><span>Report inaccurate or contested information</span></Link>
-      <Link href="/shop/delivery-returns"><strong>Shop delivery & returns</strong><span>Prototype-shop information</span></Link>
+      <Link href="/shop/delivery-returns"><strong>Shop delivery & returns</strong><span>Order, delivery and returns information</span></Link>
       <Link href="/contact"><strong>Contact ToolTrack</strong><span>Support and privacy enquiries</span></Link>
       <Link href="/privacy"><strong>Privacy</strong><span>How personal information is handled</span></Link>
     </div>

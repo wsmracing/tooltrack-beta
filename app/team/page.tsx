@@ -7,6 +7,7 @@ import { BuildingIcon, MailIcon, UsersIcon } from "@/components/icons";
 import { getPlan } from "@/lib/plans";
 import { getSupabaseBrowser } from "@/lib/supabase-browser";
 import type { Organization, OrganizationMember, Profile, TeamInvitation } from "@/lib/types";
+import { friendlyError } from "@/lib/user-errors";
 
 export default function TeamPage() {
   const [user, setUser] = useState<User | null>(null);
@@ -50,7 +51,7 @@ export default function TeamPage() {
     const supabase = getSupabaseBrowser(); const plan = getPlan(profile.plan_tier);
     const name = profile.business_name?.trim() || profile.display_name?.trim() || "My ToolTrack team";
     const { data, error: orgError } = await supabase.from("organizations").insert({ owner_id: user.id, name, account_type: plan.accountType, plan_tier: plan.tier }).select("*").single();
-    if (orgError) { setError(orgError.message); setSending(false); return; }
+    if (orgError) { setError(friendlyError(orgError, "The team workspace could not be created.")); setSending(false); return; }
     await supabase.from("organization_members").insert({ organization_id: data.id, user_id: user.id, role: "owner", status: "active" });
     await supabase.from("profiles").update({ active_organization_id: data.id }).eq("id", user.id);
     setMessage("Team workspace created."); setSending(false); await load();
@@ -65,14 +66,14 @@ export default function TeamPage() {
       const token = session.session?.access_token; if (!token) throw new Error("Your session has expired.");
       const response = await fetch("/api/team/invite", { method: "POST", headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` }, body: JSON.stringify({ organizationId: organization.id, email, role }) });
       const body = await response.json(); if (!response.ok) throw new Error(body.error || "Could not send the invitation.");
-      setMessage(body.message); setLastInviteLink(body.link || `${window.location.origin}/invite/team?token=${body.token}`); setEmail(""); await load();
-    } catch (caught) { setError(caught instanceof Error ? caught.message : "Could not send the invitation."); }
+      setMessage(body.message); setLastInviteLink(body.emailStatus === "sent" ? "" : (body.link || `${window.location.origin}/invite/team?token=${body.token}`)); setEmail(""); await load();
+    } catch (caught) { setError(friendlyError(caught, "The invitation could not be sent.")); }
     finally { setSending(false); }
   }
 
   async function cancelInvite(id: string) {
     const { error: updateError } = await getSupabaseBrowser().from("team_invitations").update({ status: "cancelled" }).eq("id", id);
-    if (updateError) setError(updateError.message); else await load();
+    if (updateError) setError(friendlyError(updateError, "The invitation could not be cancelled.")); else await load();
   }
 
   if (loading) return <div className="pageWidth pagePad"><div className="skeletonCard" /></div>;
@@ -88,7 +89,7 @@ export default function TeamPage() {
     {plan.teamTools && organization && <>
       <div className="organizationBanner"><BuildingIcon /><div><span>Workspace</span><strong>{organization.name}</strong></div><div><span>Seats</span><strong>{members.length} / {plan.memberLimit}</strong></div></div>
       <div className="splitLayout">
-        <form className="settingsCard formStack stickyPanel" onSubmit={invite}><h2>Invite a team member</h2><label>Email address<input type="email" value={email} onChange={(event) => setEmail(event.target.value)} placeholder="name@company.ie" required /></label><label>Permission<select value={role} onChange={(event) => setRole(event.target.value as typeof role)}><option value="admin">Admin — manage team and assets</option><option value="editor">Editor — add and edit assets</option><option value="viewer">Viewer — read-only access</option></select></label><button className="button primary" disabled={sending || !email.trim() || members.length >= plan.memberLimit}><MailIcon /> {sending ? "Sending…" : "Send invitation"}</button>{lastInviteLink && <div className="inviteLinkBox"><strong>Prototype fallback link</strong><input readOnly value={lastInviteLink} onFocus={(event) => event.currentTarget.select()} /><small>Use this when test email delivery is rerouted.</small></div>}</form>
+        <form className="settingsCard formStack stickyPanel" onSubmit={invite}><h2>Invite a team member</h2><label>Email address<input type="email" value={email} onChange={(event) => setEmail(event.target.value)} placeholder="name@company.ie" required /></label><label>Permission<select value={role} onChange={(event) => setRole(event.target.value as typeof role)}><option value="admin">Admin — manage team and assets</option><option value="editor">Editor — add and edit assets</option><option value="viewer">Viewer — read-only access</option></select></label><button className="button primary" disabled={sending || !email.trim() || members.length >= plan.memberLimit}><MailIcon /> {sending ? "Sending…" : "Send invitation"}</button>{lastInviteLink && <div className="inviteLinkBox"><strong>Copy invitation link</strong><input readOnly value={lastInviteLink} onFocus={(event) => event.currentTarget.select()} /><small>Email delivery was unavailable, so share this private link directly with the intended person.</small></div>}</form>
         <section><div className="dashboardSectionHeading"><div><p className="eyebrow red">Members</p><h2>Active access</h2></div></div><div className="memberList">{members.map((member) => <article key={member.id}><div className="memberAvatar"><UsersIcon /></div><div><strong>{member.user_id === user.id ? (profile?.display_name || "You") : "Team member"}</strong><span>{member.role}</span></div><span className="status safe">{member.status}</span></article>)}</div>
           <div className="dashboardSectionHeading inviteHeading"><div><p className="eyebrow red">Invitations</p><h2>Pending and recent</h2></div></div>{invites.length === 0 ? <p className="muted">No invitations yet.</p> : <div className="inviteList">{invites.map((item) => <article key={item.id}><div><strong>{item.email}</strong><span>{item.role} · expires {new Date(item.expires_at).toLocaleDateString("en-IE")}</span></div><span className={`status ${item.status === "pending" ? "transfer" : "safe"}`}>{item.status}</span>{item.status === "pending" && <button type="button" onClick={() => void cancelInvite(item.id)}>Cancel</button>}</article>)}</div>}</section>
       </div>

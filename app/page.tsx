@@ -4,23 +4,22 @@ import { CameraIcon, FileIcon, ShieldIcon } from "@/components/icons";
 
 export default function HomePage() {
   return <>
-    <section className="homeHero v44HomeHero">
+    <section className="homeHero v45HomeHero">
       <div className="pageWidth homeHeroInner">
-        <p className="eyebrow red">Free public lookup</p>
         <h1>Check a tool before you buy.</h1>
-        <p className="homeLead">Search a serial number, or register your own tools and equipment with photos and proof of ownership.</p>
+        <p className="homeLead">Search a serial number, or create a dated record for your own tools and equipment.</p>
         <LookupForm />
         <div className="homeActions singleHomeAction"><Link className="button primary large" href="/register">Register an asset</Link></div>
-        <p className="homeDisclaimer">No match does not guarantee that an item is legitimate. Always inspect the item and seller details in person.</p>
+        <p className="homeDisclaimer">A missing record does not guarantee that an item is legitimate. Always inspect the item, seller and purchase evidence.</p>
       </div>
     </section>
 
-    <section className="pageWidth sectionBlock homeFeatures v44HomeFeatures">
-      <div className="sectionHeading"><p className="eyebrow red">Simple and private</p><h2>Keep the important details together.</h2></div>
+    <section className="pageWidth sectionBlock homeFeatures v45HomeFeatures">
+      <div className="sectionHeading"><h2>Keep the important details together.</h2></div>
       <div className="featureGrid compactFeatureGrid">
-        <article><CameraIcon /><h3>Record the asset</h3><p>Photograph the item, serial plate and unique marks.</p></article>
-        <article><FileIcon /><h3>Keep proof private</h3><p>Receipts and invoices never appear in public lookups.</p></article>
-        <article><ShieldIcon /><h3>Report theft quickly</h3><p>Warn potential buyers and receive private sighting reports.</p></article>
+        <article><CameraIcon /><h3>Record the asset</h3><p>Save the serial number, photographs and identifying marks before anything goes wrong.</p></article>
+        <article><FileIcon /><h3>Keep evidence private</h3><p>Receipts and invoices remain private and never appear in a public check.</p></article>
+        <article><ShieldIcon /><h3>Sell or report with confidence</h3><p>Confirm a legitimate sale, transfer the record, or alert potential buyers after theft.</p></article>
       </div>
     </section>
   </>;

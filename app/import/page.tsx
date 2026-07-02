@@ -8,6 +8,7 @@ import { downloadTextFile, parseCsv } from "@/lib/csv";
 import { normaliseSerial, safeFileName } from "@/lib/normalise";
 import { getPlan } from "@/lib/plans";
 import { getSupabaseBrowser } from "@/lib/supabase-browser";
+import { friendlyError } from "@/lib/user-errors";
 import type { Profile } from "@/lib/types";
 
 const requiredHeaders = ["make", "model", "category", "serial"];
@@ -217,7 +218,7 @@ export default function ImportPage() {
       setRows([]);
       setFilename("");
     } catch (caught) {
-      setError(caught instanceof Error ? caught.message : "Could not import the file.");
+      setError(friendlyError(caught, "The import could not be completed. Check the file and try again."));
     } finally {
       setImporting(false);
     }

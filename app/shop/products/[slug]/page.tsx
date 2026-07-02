@@ -105,7 +105,7 @@ export default function ProductDetailPage() {
           <strong>€{(activePrice / 100).toFixed(2)}</strong>
           {activePrice < currentProduct.price_cents && <del>€{(currentProduct.price_cents / 100).toFixed(2)}</del>}
         </div>
-        <p className={`stockLine ${currentProduct.stock_quantity > 0 ? "inStock" : "outStock"}`}>{currentProduct.stock_quantity > 0 ? `${currentProduct.stock_quantity} available` : "Currently out of stock"}</p>
+        <p className={`stockLine ${currentProduct.stock_quantity > 0 ? "inStock" : "outStock"}`}>{currentProduct.stock_quantity < 1 ? "Currently out of stock" : currentProduct.stock_quantity <= 4 ? `Only ${currentProduct.stock_quantity} left` : "In stock"}</p>
         <div className="productBuyRow">
           <label>Quantity<input type="number" min="1" max={Math.max(1, currentProduct.stock_quantity)} value={quantity} onChange={(event) => setQuantity(Math.max(1, Math.min(currentProduct.stock_quantity || 1, Number(event.target.value) || 1)))} /></label>
           <button className="button primary" disabled={currentProduct.stock_quantity < 1} onClick={addToBasket}><ShopIcon /> Add to basket</button>
@@ -117,11 +117,11 @@ export default function ProductDetailPage() {
       </section>
     </div>
 
-    <div className="productInfoGrid">
-      <section className="cleanSection productInfoCard"><h2>Product details</h2><p>{currentProduct.full_description || currentProduct.description || "More product information will be added soon."}</p></section>
-      <section className="cleanSection productInfoCard"><h2>Key features</h2>{currentProduct.features?.length ? <ul>{currentProduct.features.map((feature) => <li key={feature}>{feature}</li>)}</ul> : <p className="muted">No feature list has been added yet.</p>}</section>
-      <section className="cleanSection productInfoCard productSpecs"><h2>Specifications</h2>{currentProduct.specifications && Object.keys(currentProduct.specifications).length ? <dl>{Object.entries(currentProduct.specifications).map(([key, value]) => <div key={key}><dt>{key}</dt><dd>{value}</dd></div>)}</dl> : <p className="muted">No technical specifications have been added yet.</p>}</section>
-    </div>
+    {(currentProduct.full_description || currentProduct.description || currentProduct.features?.length || (currentProduct.specifications && Object.keys(currentProduct.specifications).length)) && <div className="productInfoGrid compactProductInfoGrid">
+      {(currentProduct.full_description || currentProduct.description) && <section className="cleanSection productInfoCard"><h2>Product details</h2><p>{currentProduct.full_description || currentProduct.description}</p></section>}
+      {!!currentProduct.features?.length && <section className="cleanSection productInfoCard"><h2>Key features</h2><ul>{currentProduct.features.map((feature) => <li key={feature}>{feature}</li>)}</ul></section>}
+      {!!(currentProduct.specifications && Object.keys(currentProduct.specifications).length) && <section className="cleanSection productInfoCard productSpecs"><h2>Specifications</h2><dl>{Object.entries(currentProduct.specifications || {}).map(([key, value]) => <div key={key}><dt>{key}</dt><dd>{value}</dd></div>)}</dl></section>}
+    </div>}
 
     {related.length > 0 && <section className="cleanSection relatedProducts"><div className="cleanSectionHeader"><div><h2>Related products</h2><p>More from {currentProduct.category}.</p></div></div><div className="relatedProductGrid">{related.map((item) => {
       const image = sortedImages(item.shop_product_images)[0];

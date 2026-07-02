@@ -169,10 +169,10 @@ export default function ShopClient() {
 
       clearShopCart();
       setCheckoutOpen(false);
-      setMessage(`Order ${orderData.order_number || "created"} saved. No payment was taken.`);
+      setMessage(`Order ${orderData.order_number || "created"} saved. We will contact you to confirm payment and delivery.`);
     } catch (caught) {
       const raw = caught instanceof Error ? caught.message : "";
-      setError(raw === "SESSION_REQUIRED" ? "Sign in before placing a beta order." : friendlyError(caught, "The order could not be created. Check your details and try again."));
+      setError(raw === "SESSION_REQUIRED" ? "Sign in before placing an order." : friendlyError(caught, "The order could not be created. Check your details and try again."));
     } finally {
       setPlacing(false);
     }
@@ -198,13 +198,11 @@ export default function ShopClient() {
                 {product.is_featured && <span className="productBadge">Featured</span>}
               </div>
             </Link>
-            <div className="productCardBody">
-              <span className="productCategory">{product.category}</span>
+            <div className="productCardBody simplifiedProductCardBody">
               <h2><Link href={`/shop/products/${product.slug}`}>{product.name}</Link></h2>
-              <p>{product.description || "Useful equipment and accessories for everyday work."}</p>
               <div className="productPriceRow"><strong>€{(activePrice / 100).toFixed(2)}</strong>{onSale && <del>€{(product.price_cents / 100).toFixed(2)}</del>}</div>
-              <small>{product.stock_quantity > 0 ? `${product.stock_quantity} in stock` : "Out of stock"}</small>
-              <div className="productCardActions"><Link className="button secondary" href={`/shop/products/${product.slug}`}>View details</Link><button className="button primary" disabled={product.stock_quantity < 1} onClick={() => add(product)}>Add</button></div>
+              {product.stock_quantity < 1 ? <small className="stockWarning">Out of stock</small> : product.stock_quantity <= 4 ? <small className="stockWarning">Only {product.stock_quantity} left</small> : null}
+              <button className="button primary productAddButton" disabled={product.stock_quantity < 1} onClick={() => add(product)}>Add to basket</button>
             </div>
           </article>;
         })}
@@ -228,10 +226,10 @@ export default function ShopClient() {
           <label>Address line 2<input value={checkout.address2} onChange={(event) => setCheckout({ ...checkout, address2: event.target.value })} autoComplete="address-line2" /></label>
           <div className="formGrid two"><label>Town / city<input value={checkout.city} onChange={(event) => setCheckout({ ...checkout, city: event.target.value })} autoComplete="address-level2" required /></label><label>County<input value={checkout.county} onChange={(event) => setCheckout({ ...checkout, county: event.target.value })} autoComplete="address-level1" required /></label></div>
           <div className="formGrid two"><label>Eircode<input value={checkout.eircode} onChange={(event) => setCheckout({ ...checkout, eircode: event.target.value.toUpperCase() })} autoComplete="postal-code" /></label><label>Country<input value={checkout.country} onChange={(event) => setCheckout({ ...checkout, country: event.target.value })} autoComplete="country-name" /></label></div>
-          <div className="checkoutActions"><button type="button" className="button secondary" onClick={() => setCheckoutOpen(false)}>Back</button><button className="button primary" disabled={placing}>{placing ? "Creating order…" : "Place beta order"}</button></div>
+          <div className="checkoutActions"><button type="button" className="button secondary" onClick={() => setCheckoutOpen(false)}>Back</button><button className="button primary" disabled={placing}>{placing ? "Creating order…" : "Send order request"}</button></div>
         </form>}
         <Link className="textLink" href="/account/orders">View my orders</Link>
-        <small>No payment is taken during prototype testing.</small>
+        <small>Order request only — payment and delivery will be confirmed separately.</small>
       </aside>
     </div>
   </>;

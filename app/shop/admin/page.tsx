@@ -360,7 +360,7 @@ export default function ShopAdminPage() {
       .from("shop_product_images")
       .update({ sort_order: image.sort_order })
       .eq("id", target.id);
-    if (first.error || second.error) setError(first.error?.message || second.error?.message || "Could not reorder images.");
+    if (first.error || second.error) setError(friendlyError(first.error || second.error, "The product images could not be reordered."));
     else await load();
   }
 
@@ -405,7 +405,7 @@ export default function ShopAdminPage() {
   );
 
   return <div className="pageWidth pagePad shopAdminPage v44ShopAdmin">
-    <div className="sectionTitleRow"><div><p className="eyebrow red">Platform administration</p><h1>Shop administration</h1><p className="muted">Manage products, images and prototype orders.</p></div><ShopIcon /></div>
+    <div className="sectionTitleRow"><div><p className="eyebrow red">Platform administration</p><h1>Shop administration</h1><p className="muted">Manage products, images and customer orders.</p></div><ShopIcon /></div>
     {message && <div className="notice success">{message}</div>}
     {error && <div className="notice danger">{error}</div>}
 
@@ -439,7 +439,7 @@ export default function ShopAdminPage() {
       </div></section>
     </div>}
 
-    {tab === "orders" && <section className="cleanSection adminOrdersPanel"><div className="cleanSectionHeader"><div><h2>Orders</h2><p>Customer details and prototype fulfilment status.</p></div></div><div className="adminOrderList detailedOrders">
+    {tab === "orders" && <section className="cleanSection adminOrdersPanel"><div className="cleanSectionHeader"><div><h2>Orders</h2><p>Customer details and fulfilment status.</p></div></div><div className="adminOrderList detailedOrders">
       {orders.length ? orders.map((order) => <article key={order.id}>
         <div className="adminOrderSummary"><strong>{order.order_number || order.id.slice(0, 8).toUpperCase()}</strong><span>{order.contact_name || "Customer"} · €{(order.total_cents / 100).toFixed(2)}</span><small>{new Date(order.created_at).toLocaleString("en-IE")}</small></div>
         <div className="adminOrderContact"><span>{order.contact_email || "No email"}</span><span>{order.contact_phone || "No phone"}</span></div>

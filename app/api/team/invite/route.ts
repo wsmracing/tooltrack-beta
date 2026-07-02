@@ -23,7 +23,7 @@ export async function POST(request: NextRequest) {
   const invitationToken = randomUUID().replaceAll("-", "");
   const expiresAt = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString();
   const { data: invitation, error: inviteError } = await admin.from("team_invitations").insert({ organization_id: body.organizationId, invited_by: auth.user.id, email, role, token: invitationToken, status: "pending", expires_at: expiresAt }).select("id").single();
-  if (inviteError) return NextResponse.json({ error: inviteError.message }, { status: 400 });
+  if (inviteError) return NextResponse.json({ error: "The invitation could not be created." }, { status: 400 });
 
   const appUrl = getPublicAppUrl(request.nextUrl.origin);
   const organizationName = ((membership.organizations as unknown as { name?: string } | null)?.name || "a ToolTrack team");

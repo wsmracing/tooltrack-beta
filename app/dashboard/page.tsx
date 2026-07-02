@@ -7,6 +7,7 @@ import { AlertIcon, PlusIcon, ToolboxIcon } from "@/components/icons";
 import { getSupabaseBrowser, isSupabaseConfigured } from "@/lib/supabase-browser";
 import type { Asset, Profile, Sighting } from "@/lib/types";
 import { friendlyError } from "@/lib/user-errors";
+import { assetStatusLabel } from "@/lib/asset-status";
 
 export default function DashboardPage() {
   const [user, setUser] = useState<User | null>(null);
@@ -96,7 +97,7 @@ export default function DashboardPage() {
         {recentAssets.map((asset) => <Link href={`/asset/${asset.id}`} className="compactRow" key={asset.id}>
           <ToolboxIcon />
           <div><strong>{asset.make} {asset.model}</strong><span>Serial {asset.serial_original}</span></div>
-          <span className={`status ${asset.status}`}>{asset.status}</span>
+          <span className={`status ${asset.status}`}>{assetStatusLabel(asset.status)}</span>
         </Link>)}
       </div> : <div className="emptyPanel compactEmpty"><ToolboxIcon /><h2>No assets yet</h2><p>Register your first tool or item to start your asset record.</p><Link className="button primary" href="/register">Register an asset</Link></div>}
     </section>

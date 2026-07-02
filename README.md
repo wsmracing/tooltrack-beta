@@ -1,27 +1,39 @@
-# ToolTrack V4.4 beta
+# ToolTrack V4.5 closed beta
 
-ToolTrack is a mobile-first asset registration, stolen-item lookup and tools/accessories shop prototype.
+ToolTrack is a mobile-first asset register, stolen-item checker and ownership-transfer service for tools and other valuable equipment.
 
-## V4.4 highlights
+## V4.5 highlights
 
-- Four-item mobile bottom navigation: Home, Lookup, Assets and Add
-- Account accessed from the person icon; secondary items live in the hamburger menu
-- Mobile drawer closes on selection, outside tap, scroll/swipe and browser navigation
-- Simplified dashboard and homepage
-- Manual asset-transfer claim with preview and codes accepted with or without dashes
-- Team and transfer emails use the active domain instead of a stale Vercel URL
-- Shop checkout collects required contact and delivery information
-- Friendly customer messages replace raw database errors
-- Product and order administration separated into tabs
-- Tools & accessories wording throughout the shop
-- Help, how-it-works, contact, terms, disputes and delivery/returns pages
-- Vercel Web Analytics retained with token/query stripping
+- Cleaner signed-in and signed-out navigation with a visible Log out action
+- Simplified Home, Dashboard, My Assets, Account and Shop experiences
+- Professional serial-check wording with no “free public lookup” banner
+- Public states for registered, offered for sale, transfer pending, stolen, recovered and disputed records
+- Temporary six-digit seller-control confirmation for buyers
+- Strong 12-character transfer codes stored as hashes, with one-time transactional claims
+- Marketplace sighting fields for Adverts.ie, DoneDeal, Facebook Marketplace and other common sources
+- Three-step asset registration and clearer evidence language
+- Insurance Asset Schedule PDF and Theft Evidence Report PDF, including available asset photographs
+- Private evidence indicators and record-strength badges
+- Lookup throttling, stricter validation, security headers and `/.well-known/security.txt`
+- Vercel Web Analytics retained
 
-## Upgrade
+## Upgrade from V4.4
 
-1. Replace the project files with this V4.4 package.
-2. Run `supabase/migrations/20260701_v4_4.sql` once in the Supabase SQL Editor.
-3. Run `npm install`, `npm run typecheck` and `npm run build`.
-4. Commit and push to GitHub. Vercel should redeploy automatically.
+1. Back up the current project and Supabase database.
+2. Replace the project files with the V4.5 package. Preserve your existing `.env.local` and `.git` folder.
+3. Run `supabase/migrations/20260702_v4_5.sql` once in Supabase SQL Editor.
+4. Run:
 
-Keep `NEXT_PUBLIC_APP_URL` set to the preferred public domain. During Vercel beta testing, server-generated links also protect against a stale generated Vercel hostname.
+```bash
+npm install
+npm run typecheck
+npm run build
+```
+
+5. Commit and push to GitHub. The connected Vercel project should redeploy automatically.
+
+Keep `NEXT_PUBLIC_APP_URL` set to the active site until the custom domain is connected. `NEXT_PUBLIC_SUPPORT_EMAIL` is optional and defaults to `support@tooltrack.ie`.
+
+## Security status
+
+V4.5 adds practical hardening, but it is not a security certification. Before opening the service to real sensitive records or live payments, complete the two-user database and Storage isolation tests in `SECURITY-V4.5.md` and close the High findings from the supplied security assessment.

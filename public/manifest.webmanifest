@@ -1,13 +1,21 @@
 {
-  "name": "ToolTrack Beta",
+  "name": "ToolTrack",
   "short_name": "ToolTrack",
-  "description": "Register tools, store proof of ownership and check stolen serial numbers.",
+  "description": "Register equipment, store private ownership evidence and check serial numbers before buying.",
   "start_url": "/",
   "display": "standalone",
   "background_color": "#ffffff",
   "theme_color": "#d71920",
   "icons": [
-    { "src": "/icon-192.png", "sizes": "192x192", "type": "image/png" },
-    { "src": "/icon-512.png", "sizes": "512x512", "type": "image/png" }
+    {
+      "src": "/icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png"
+    },
+    {
+      "src": "/icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png"
+    }
   ]
 }
