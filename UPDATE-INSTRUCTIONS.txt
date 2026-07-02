@@ -1,0 +1,6 @@
+ToolTrack V4.4 update
+
+1. Copy the contents of this folder into the root of the existing tooltrack-beta repository and allow files to be replaced.
+2. Run supabase/migrations/20260701_v4_4.sql once in the Supabase SQL Editor.
+3. Run npm install, npm run typecheck and npm run build.
+4. Commit and push to GitHub.

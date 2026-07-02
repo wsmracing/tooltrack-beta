@@ -1,5 +1,1 @@
-import type { Metadata } from "next";
-export const metadata: Metadata = { title: "Contact" };
-export default function ContactPage() {
-  return <div className="pageWidth pagePad narrowPage"><p className="eyebrow red">Support</p><h1>Contact ToolTrack</h1><div className="settingsCard"><p>ToolTrack is currently in private beta.</p><p>For testing feedback or support, email <a className="textLink" href="mailto:support@tooltrack.ie">support@tooltrack.ie</a>.</p></div></div>;
-}
+export default function ContactPage(){return <div className="pageWidth pagePad narrowContent contentPage"><p className="eyebrow red">Contact</p><h1>Contact ToolTrack</h1><div className="settingsCard"><h2>Prototype support</h2><p>For account, privacy, stolen-record or shop questions, contact the ToolTrack beta administrator.</p><p><strong>Email:</strong> Add your support email before public launch.</p><p className="muted">Do not include payment-card information or unnecessary personal documents in a support message.</p></div></div>}

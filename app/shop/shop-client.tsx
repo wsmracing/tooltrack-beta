@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useEffect, useMemo, useState } from "react";
+import { FormEvent, useEffect, useMemo, useState } from "react";
 import { ShieldIcon, ShopIcon } from "@/components/icons";
 import {
   clearShopCart,
@@ -11,7 +11,32 @@ import {
   type ShopCart,
 } from "@/lib/shop-cart";
 import { getSupabaseBrowser } from "@/lib/supabase-browser";
-import type { ShopProduct, ShopProductImage } from "@/lib/types";
+import type { Profile, ShopProduct, ShopProductImage } from "@/lib/types";
+import { friendlyError } from "@/lib/user-errors";
+
+type CheckoutForm = {
+  name: string;
+  email: string;
+  phone: string;
+  address1: string;
+  address2: string;
+  city: string;
+  county: string;
+  eircode: string;
+  country: string;
+};
+
+const emptyCheckout: CheckoutForm = {
+  name: "",
+  email: "",
+  phone: "",
+  address1: "",
+  address2: "",
+  city: "",
+  county: "",
+  eircode: "",
+  country: "Ireland",
+};
 
 function primaryImage(images?: ShopProductImage[]) {
   return [...(images ?? [])].sort((a, b) => {
@@ -21,15 +46,15 @@ function primaryImage(images?: ShopProductImage[]) {
 }
 
 function productPrice(product: ShopProduct) {
-  if (product.sale_price_cents !== null && product.sale_price_cents < product.price_cents) {
-    return product.sale_price_cents;
-  }
+  if (product.sale_price_cents !== null && product.sale_price_cents < product.price_cents) return product.sale_price_cents;
   return product.price_cents;
 }
 
 export default function ShopClient() {
   const [products, setProducts] = useState<ShopProduct[]>([]);
   const [cart, setCart] = useState<ShopCart>({});
+  const [checkout, setCheckout] = useState<CheckoutForm>(emptyCheckout);
+  const [checkoutOpen, setCheckoutOpen] = useState(false);
   const [loading, setLoading] = useState(true);
   const [placing, setPlacing] = useState(false);
   const [message, setMessage] = useState("");
@@ -48,14 +73,24 @@ export default function ShopClient() {
 
   useEffect(() => {
     void (async () => {
-      const { data, error: productError } = await getSupabaseBrowser()
-        .from("shop_products")
-        .select("*, shop_product_images(*)")
-        .eq("is_active", true)
-        .order("is_featured", { ascending: false })
-        .order("name");
-      if (productError) setError(productError.message);
+      const supabase = getSupabaseBrowser();
+      const [{ data, error: productError }, { data: auth }] = await Promise.all([
+        supabase.from("shop_products").select("*, shop_product_images(*)").eq("is_active", true).order("is_featured", { ascending: false }).order("name"),
+        supabase.auth.getUser(),
+      ]);
+      if (productError) setError("The shop products could not be loaded.");
       else setProducts((data ?? []) as ShopProduct[]);
+
+      if (auth.user) {
+        const { data: profileData } = await supabase.from("profiles").select("*").eq("id", auth.user.id).maybeSingle();
+        const profile = profileData as Profile | null;
+        setCheckout((current) => ({
+          ...current,
+          name: profile?.display_name?.trim() || profile?.business_name?.trim() || String(auth.user?.user_metadata?.full_name || "").trim(),
+          email: auth.user?.email || "",
+          phone: profile?.phone || "",
+        }));
+      }
       setLoading(false);
     })();
   }, []);
@@ -64,6 +99,7 @@ export default function ShopClient() {
     () => products.filter((product) => cart[product.id]).map((product) => ({ ...product, quantity: cart[product.id] })),
     [cart, products],
   );
+  const itemCount = items.reduce((sum, product) => sum + product.quantity, 0);
   const total = items.reduce((sum, product) => sum + productPrice(product) * product.quantity, 0);
 
   function add(product: ShopProduct) {
@@ -73,42 +109,73 @@ export default function ShopClient() {
     setError("");
   }
 
-  async function order() {
+  function validateCheckout() {
+    if (!checkout.name.trim()) return "Enter your name before placing the order.";
+    if (!/^\S+@\S+\.\S+$/.test(checkout.email.trim())) return "Enter a valid email address.";
+    if (!checkout.phone.trim()) return "Enter a contact phone number.";
+    if (!checkout.address1.trim() || !checkout.city.trim() || !checkout.county.trim()) return "Complete the delivery address.";
+    return "";
+  }
+
+  async function order(event: FormEvent) {
+    event.preventDefault();
+    const validation = validateCheckout();
+    if (validation) {
+      setError(validation);
+      return;
+    }
     setPlacing(true);
     setError("");
     setMessage("");
-    const supabase = getSupabaseBrowser();
-    const { data: auth } = await supabase.auth.getUser();
-    if (!auth.user) {
-      setError("Sign in before placing a beta order.");
-      setPlacing(false);
-      return;
-    }
-    const { data: orderData, error: orderError } = await supabase
-      .from("shop_orders")
-      .insert({ user_id: auth.user.id, status: "pending", total_cents: total })
-      .select("id")
-      .single();
-    if (orderError) {
-      setError(orderError.message);
-      setPlacing(false);
-      return;
-    }
-    const { error: itemError } = await supabase.from("shop_order_items").insert(
-      items.map((product) => ({
+
+    try {
+      const supabase = getSupabaseBrowser();
+      const { data: auth } = await supabase.auth.getUser();
+      if (!auth.user) throw new Error("SESSION_REQUIRED");
+
+      const orderPayload = {
+        user_id: auth.user.id,
+        status: "pending",
+        payment_status: "not_charged",
+        subtotal_cents: total,
+        delivery_cents: 0,
+        total_cents: total,
+        currency: "EUR",
+        contact_name: checkout.name.trim(),
+        contact_email: checkout.email.trim().toLowerCase(),
+        contact_phone: checkout.phone.trim(),
+        delivery_address: {
+          address1: checkout.address1.trim(),
+          address2: checkout.address2.trim() || null,
+          city: checkout.city.trim(),
+          county: checkout.county.trim(),
+          eircode: checkout.eircode.trim() || null,
+          country: checkout.country.trim() || "Ireland",
+        },
+      };
+
+      const { data: orderData, error: orderError } = await supabase.from("shop_orders").insert(orderPayload).select("id, order_number").single();
+      if (orderError) throw orderError;
+
+      const { error: itemError } = await supabase.from("shop_order_items").insert(items.map((product) => ({
         order_id: orderData.id,
         product_id: product.id,
         product_name: product.name,
         quantity: product.quantity,
         unit_price_cents: productPrice(product),
-      })),
-    );
-    if (itemError) setError(itemError.message);
-    else {
+        line_total_cents: productPrice(product) * product.quantity,
+      })));
+      if (itemError) throw itemError;
+
       clearShopCart();
-      setMessage("Beta order created. No payment was taken.");
+      setCheckoutOpen(false);
+      setMessage(`Order ${orderData.order_number || "created"} saved. No payment was taken.`);
+    } catch (caught) {
+      const raw = caught instanceof Error ? caught.message : "";
+      setError(raw === "SESSION_REQUIRED" ? "Sign in before placing a beta order." : friendlyError(caught, "The order could not be created. Check your details and try again."));
+    } finally {
+      setPlacing(false);
     }
-    setPlacing(false);
   }
 
   if (loading) return <div className="skeletonCard" />;
@@ -116,13 +183,12 @@ export default function ShopClient() {
   return <>
     {message && <div className="notice success">{message}</div>}
     {error && <div className="notice danger">{error}</div>}
+    {itemCount > 0 && <a className="mobileBasketButton" href="#basket"><ShopIcon /> Basket <span>{itemCount}</span></a>}
     <div className="shopLayout">
       <div className="productGrid">
         {products.map((product) => {
           const image = primaryImage(product.shop_product_images);
-          const imageUrl = image
-            ? getSupabaseBrowser().storage.from("shop-product-images").getPublicUrl(image.storage_path).data.publicUrl
-            : null;
+          const imageUrl = image ? getSupabaseBrowser().storage.from("shop-product-images").getPublicUrl(image.storage_path).data.publicUrl : null;
           const activePrice = productPrice(product);
           const onSale = activePrice < product.price_cents;
           return <article className="productCard" key={product.id}>
@@ -135,34 +201,35 @@ export default function ShopClient() {
             <div className="productCardBody">
               <span className="productCategory">{product.category}</span>
               <h2><Link href={`/shop/products/${product.slug}`}>{product.name}</Link></h2>
-              <p>{product.description || "Security and asset protection product."}</p>
-              <div className="productPriceRow">
-                <strong>€{(activePrice / 100).toFixed(2)}</strong>
-                {onSale && <del>€{(product.price_cents / 100).toFixed(2)}</del>}
-              </div>
+              <p>{product.description || "Useful equipment and accessories for everyday work."}</p>
+              <div className="productPriceRow"><strong>€{(activePrice / 100).toFixed(2)}</strong>{onSale && <del>€{(product.price_cents / 100).toFixed(2)}</del>}</div>
               <small>{product.stock_quantity > 0 ? `${product.stock_quantity} in stock` : "Out of stock"}</small>
-              <div className="productCardActions">
-                <Link className="button secondary" href={`/shop/products/${product.slug}`}>View details</Link>
-                <button className="button primary" disabled={product.stock_quantity < 1} onClick={() => add(product)}>Add</button>
-              </div>
+              <div className="productCardActions"><Link className="button secondary" href={`/shop/products/${product.slug}`}>View details</Link><button className="button primary" disabled={product.stock_quantity < 1} onClick={() => add(product)}>Add</button></div>
             </div>
           </article>;
         })}
       </div>
+
       <aside className="cartCard" id="basket">
         <ShopIcon />
         <h2>Basket</h2>
         {items.length ? items.map((item) => <div className="cartItem" key={item.id}>
           <div><strong>{item.name}</strong><span>€{(productPrice(item) / 100).toFixed(2)} each</span></div>
-          <div className="cartQuantity">
-            <button aria-label={`Remove one ${item.name}`} onClick={() => setShopCartItem(item.id, item.quantity - 1)}>−</button>
-            <span>{item.quantity}</span>
-            <button aria-label={`Add one ${item.name}`} disabled={item.quantity >= item.stock_quantity} onClick={() => setShopCartItem(item.id, item.quantity + 1)}>+</button>
-          </div>
+          <div className="cartQuantity"><button aria-label={`Remove one ${item.name}`} onClick={() => setShopCartItem(item.id, item.quantity - 1)}>−</button><span>{item.quantity}</span><button aria-label={`Add one ${item.name}`} disabled={item.quantity >= item.stock_quantity} onClick={() => setShopCartItem(item.id, item.quantity + 1)}>+</button></div>
           <strong>€{(productPrice(item) * item.quantity / 100).toFixed(2)}</strong>
         </div>) : <p className="muted">Your basket is empty.</p>}
         <div className="cartTotal"><span>Total</span><strong>€{(total / 100).toFixed(2)}</strong></div>
-        <button className="button primary" disabled={!items.length || placing} onClick={() => void order()}>{placing ? "Creating order…" : "Place beta order"}</button>
+        {!checkoutOpen ? <button className="button primary" disabled={!items.length} onClick={() => setCheckoutOpen(true)}>Continue to details</button> : <form className="checkoutForm formStack" onSubmit={order}>
+          <h3>Contact & delivery</h3>
+          <label>Name<input value={checkout.name} onChange={(event) => setCheckout({ ...checkout, name: event.target.value })} autoComplete="name" required /></label>
+          <label>Email<input type="email" value={checkout.email} onChange={(event) => setCheckout({ ...checkout, email: event.target.value })} autoComplete="email" required /></label>
+          <label>Phone<input value={checkout.phone} onChange={(event) => setCheckout({ ...checkout, phone: event.target.value })} inputMode="tel" autoComplete="tel" required /></label>
+          <label>Address<input value={checkout.address1} onChange={(event) => setCheckout({ ...checkout, address1: event.target.value })} autoComplete="address-line1" required /></label>
+          <label>Address line 2<input value={checkout.address2} onChange={(event) => setCheckout({ ...checkout, address2: event.target.value })} autoComplete="address-line2" /></label>
+          <div className="formGrid two"><label>Town / city<input value={checkout.city} onChange={(event) => setCheckout({ ...checkout, city: event.target.value })} autoComplete="address-level2" required /></label><label>County<input value={checkout.county} onChange={(event) => setCheckout({ ...checkout, county: event.target.value })} autoComplete="address-level1" required /></label></div>
+          <div className="formGrid two"><label>Eircode<input value={checkout.eircode} onChange={(event) => setCheckout({ ...checkout, eircode: event.target.value.toUpperCase() })} autoComplete="postal-code" /></label><label>Country<input value={checkout.country} onChange={(event) => setCheckout({ ...checkout, country: event.target.value })} autoComplete="country-name" /></label></div>
+          <div className="checkoutActions"><button type="button" className="button secondary" onClick={() => setCheckoutOpen(false)}>Back</button><button className="button primary" disabled={placing}>{placing ? "Creating order…" : "Place beta order"}</button></div>
+        </form>}
         <Link className="textLink" href="/account/orders">View my orders</Link>
         <small>No payment is taken during prototype testing.</small>
       </aside>

@@ -191,6 +191,7 @@ export interface ShopOrderItem {
   product_name: string;
   quantity: number;
   unit_price_cents: number;
+  line_total_cents?: number;
 }
 
 export type ShopOrderStatus =
@@ -203,9 +204,19 @@ export type ShopOrderStatus =
 
 export interface ShopOrder {
   id: string;
+  order_number?: string | null;
   user_id: string;
   status: ShopOrderStatus;
+  payment_status?: string | null;
+  subtotal_cents?: number;
+  delivery_cents?: number;
   total_cents: number;
+  currency?: string | null;
+  contact_name?: string | null;
+  contact_email?: string | null;
+  contact_phone?: string | null;
+  delivery_address?: Record<string, string | null> | null;
+  notes?: string | null;
   status_updated_at: string | null;
   status_updated_by: string | null;
   created_at: string;

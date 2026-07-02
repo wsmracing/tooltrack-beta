@@ -67,7 +67,7 @@ export default function LoginPage() {
         <p className="eyebrow red">ToolTrack beta</p><h1>{mode === "login" ? "Welcome back" : "Create your account"}</h1><p className="muted">Use a test email account for the prototype.</p>
         <div className="segmented"><button className={mode === "login" ? "active" : ""} onClick={() => setMode("login")}>Sign in</button><button className={mode === "signup" ? "active" : ""} onClick={() => setMode("signup")}>Register</button></div>
         <form className="formStack" onSubmit={submit}>{mode === "signup" && <label>Name<input value={name} onChange={(e) => setName(e.target.value)} required autoComplete="name" placeholder="Daniel" /></label>}<label>Email address<input type="email" value={email} onChange={(e) => setEmail(e.target.value)} required autoComplete="email" /></label><label>Password<input type="password" value={password} onChange={(e) => setPassword(e.target.value)} minLength={8} required autoComplete={mode === "login" ? "current-password" : "new-password"} /></label><button className="button primary large" disabled={loading}>{loading ? "Please wait…" : mode === "login" ? "Sign in" : "Create account"}</button></form>
-        {message && <div className="notice success">{message}</div>}{error && <div className="notice danger">{error}</div>}
+        {message && <div className="notice success">{message}</div>}{error && <div className="notice danger">{error}</div>}<div className="authSecondaryLinks"><a href="/transfer">Have a transfer code?</a><a href="/help">Need help?</a></div>
       </div>
     </div>
   );

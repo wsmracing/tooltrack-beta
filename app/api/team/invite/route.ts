@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { randomUUID } from "crypto";
 import { escapeEmailHtml, sendToolTrackEmail } from "@/lib/email";
 import { getSupabaseAdmin } from "@/lib/supabase-server";
+import { getPublicAppUrl } from "@/lib/app-url";
 
 export async function POST(request: NextRequest) {
   const admin = getSupabaseAdmin();
@@ -24,7 +25,7 @@ export async function POST(request: NextRequest) {
   const { data: invitation, error: inviteError } = await admin.from("team_invitations").insert({ organization_id: body.organizationId, invited_by: auth.user.id, email, role, token: invitationToken, status: "pending", expires_at: expiresAt }).select("id").single();
   if (inviteError) return NextResponse.json({ error: inviteError.message }, { status: 400 });
 
-  const appUrl = (process.env.NEXT_PUBLIC_APP_URL || request.nextUrl.origin).replace(/\/$/, "");
+  const appUrl = getPublicAppUrl(request.nextUrl.origin);
   const organizationName = ((membership.organizations as unknown as { name?: string } | null)?.name || "a ToolTrack team");
   const link = `${appUrl}/invite/team?token=${encodeURIComponent(invitationToken)}`;
   const result = await sendToolTrackEmail({
@@ -35,5 +36,5 @@ export async function POST(request: NextRequest) {
     html: `<div style="font-family:Arial,sans-serif;max-width:620px;margin:auto"><h1 style="color:#d71920">ToolTrack invitation</h1><p>You have been invited to join <strong>${escapeEmailHtml(organizationName)}</strong> as <strong>${escapeEmailHtml(role)}</strong>.</p><p><a href="${escapeEmailHtml(link)}" style="display:inline-block;background:#d71920;color:white;padding:12px 18px;border-radius:8px;text-decoration:none;font-weight:bold">Accept invitation</a></p><p>This link expires in 7 days.</p></div>`,
   });
   await admin.from("team_invitations").update({ email_status: result.status, email_provider_id: result.providerId, email_error: result.error }).eq("id", invitation.id);
-  return NextResponse.json({ message: result.status === "sent" ? "Invitation saved and email sent." : "Invitation saved. Email delivery is not configured.", token: invitationToken, emailStatus: result.status });
+  return NextResponse.json({ message: result.status === "sent" ? "Invitation saved and email sent." : "Invitation saved. Email delivery is not configured.", token: invitationToken, link, emailStatus: result.status });
 }

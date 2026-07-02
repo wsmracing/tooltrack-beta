@@ -1,0 +1,2 @@
+import Link from "next/link";
+export default function DeliveryReturnsPage(){return <div className="pageWidth pagePad narrowContent contentPage"><p className="eyebrow red">Shop information</p><h1>Delivery & returns</h1><div className="proseCard"><p>The ToolTrack shop is currently a prototype. Test orders do not take payment and are not dispatched.</p><p>Before commercial launch, this page will set out delivery areas, charges, estimated times, returns, faulty goods and cancellation rights.</p><Link className="button secondary" href="/shop">Return to shop</Link></div></div>}

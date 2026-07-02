@@ -46,7 +46,7 @@ export default function ProductDetailPage() {
         .maybeSingle();
 
       if (loadError) {
-        setError(loadError.message);
+        setError("This product could not be loaded.");
         setLoading(false);
         return;
       }
@@ -83,7 +83,7 @@ export default function ProductDetailPage() {
   }
 
   return <div className="pageWidth pagePad productDetailPage">
-    <Link className="backLink" href="/shop">← Security shop</Link>
+    <Link className="backLink" href="/shop">← Shop</Link>
     {message && <div className="notice success">{message} <Link href="/shop#basket">View basket</Link></div>}
     <div className="productDetailGrid">
       <section className="productGallery">
@@ -100,7 +100,7 @@ export default function ProductDetailPage() {
         <span className="productCategory">{currentProduct.category}</span>
         <h1>{currentProduct.name}</h1>
         {(currentProduct.manufacturer || currentProduct.model) && <p className="productModel">{[currentProduct.manufacturer, currentProduct.model].filter(Boolean).join(" · ")}</p>}
-        <p className="productLead">{currentProduct.description || "Security and asset protection product."}</p>
+        <p className="productLead">{currentProduct.description || "Useful equipment and accessories for everyday work."}</p>
         <div className="productDetailPrice">
           <strong>€{(activePrice / 100).toFixed(2)}</strong>
           {activePrice < currentProduct.price_cents && <del>€{(currentProduct.price_cents / 100).toFixed(2)}</del>}

@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { escapeEmailHtml, sendToolTrackEmail } from "@/lib/email";
 import { getSupabaseAdmin } from "@/lib/supabase-server";
+import { getPublicAppUrl } from "@/lib/app-url";
 
 export const runtime = "nodejs";
 
@@ -15,7 +16,7 @@ export async function POST(request: NextRequest) {
   const user = data.user;
   if (error || !user?.email) return NextResponse.json({ error: "Your signed-in email address could not be verified." }, { status: 401 });
 
-  const appUrl = (process.env.NEXT_PUBLIC_APP_URL || "").replace(/\/$/, "");
+  const appUrl = getPublicAppUrl(request.nextUrl.origin);
   const result = await sendToolTrackEmail({
     to: user.email,
     subject: "ToolTrack email test",

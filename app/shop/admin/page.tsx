@@ -4,6 +4,7 @@ import Link from "next/link";
 import { ChangeEvent, FormEvent, useEffect, useMemo, useState } from "react";
 import { ShieldIcon, ShopIcon, UploadIcon } from "@/components/icons";
 import { safeFileName } from "@/lib/normalise";
+import { friendlyError } from "@/lib/user-errors";
 import { getSupabaseBrowser } from "@/lib/supabase-browser";
 import type {
   ShopOrder,
@@ -35,7 +36,7 @@ const blank: ProductForm = {
   name: "",
   slug: "",
   sku: "",
-  category: "Security",
+  category: "Accessories",
   manufacturer: "",
   model: "",
   warranty: "",
@@ -109,6 +110,8 @@ export default function ShopAdminPage() {
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState("");
   const [message, setMessage] = useState("");
+  const [tab, setTab] = useState<"products" | "orders">("products");
+  const [updatingOrder, setUpdatingOrder] = useState<string | null>(null);
 
   const editedProduct = useMemo(
     () => products.find((product) => product.id === editing) ?? null,
@@ -146,9 +149,9 @@ export default function ShopAdminPage() {
         .order("created_at", { ascending: false }),
     ]);
 
-    if (productResponse.error) setError(productResponse.error.message);
+    if (productResponse.error) setError(friendlyError(productResponse.error, "Products could not be loaded."));
     else setProducts((productResponse.data ?? []) as ShopProduct[]);
-    if (orderResponse.error) setError(orderResponse.error.message);
+    if (orderResponse.error) setError(friendlyError(orderResponse.error, "Orders could not be loaded."));
     else setOrders((orderResponse.data ?? []) as ShopOrder[]);
   }
 
@@ -257,7 +260,7 @@ export default function ShopAdminPage() {
         slug: slugify(form.slug || name),
         description: form.description.trim() || null,
         full_description: form.fullDescription.trim() || null,
-        category: form.category.trim() || "Security",
+        category: form.category.trim() || "Accessories",
         manufacturer: form.manufacturer.trim() || null,
         model: form.model.trim() || null,
         warranty: form.warranty.trim() || null,
@@ -290,7 +293,7 @@ export default function ShopAdminPage() {
       resetForm();
       await load();
     } catch (caught) {
-      setError(caught instanceof Error ? caught.message : "Could not save the product.");
+      setError(friendlyError(caught, "The product could not be saved. Check the details and try again."));
     } finally {
       setSaving(false);
     }
@@ -304,14 +307,14 @@ export default function ShopAdminPage() {
       .from("shop-product-images")
       .remove([image.storage_path]);
     if (storageResult.error) {
-      setError(storageResult.error.message);
+      setError(friendlyError(storageResult.error, "The image could not be deleted."));
       return;
     }
     const { error: rowError } = await supabase
       .from("shop_product_images")
       .delete()
       .eq("id", image.id);
-    if (rowError) setError(rowError.message);
+    if (rowError) setError(friendlyError(rowError, "The image record could not be updated."));
     else {
       setMessage("Product image deleted.");
       await load();
@@ -326,14 +329,14 @@ export default function ShopAdminPage() {
       .update({ is_primary: false })
       .eq("product_id", image.product_id);
     if (clearError) {
-      setError(clearError.message);
+      setError(friendlyError(clearError, "The main image could not be changed."));
       return;
     }
     const { error: updateError } = await supabase
       .from("shop_product_images")
       .update({ is_primary: true })
       .eq("id", image.id);
-    if (updateError) setError(updateError.message);
+    if (updateError) setError(friendlyError(updateError, "The main image could not be changed."));
     else {
       setMessage("Main product image updated.");
       await load();
@@ -362,8 +365,12 @@ export default function ShopAdminPage() {
   }
 
   async function updateStatus(id: string, value: ShopOrderStatus) {
+    const previous = orders.find((order) => order.id === id)?.status;
+    setUpdatingOrder(id);
     setError("");
     setMessage("");
+    setOrders((current) => current.map((order) => order.id === id ? { ...order, status: value } : order));
+
     const supabase = getSupabaseBrowser();
     const { data: auth } = await supabase.auth.getUser();
     const { error: updateError } = await supabase
@@ -375,11 +382,15 @@ export default function ShopAdminPage() {
         updated_at: new Date().toISOString(),
       })
       .eq("id", id);
-    if (updateError) setError(updateError.message);
-    else {
+
+    if (updateError) {
+      if (previous) setOrders((current) => current.map((order) => order.id === id ? { ...order, status: previous } : order));
+      setError(friendlyError(updateError, "The order status could not be saved. Refresh and try again."));
+    } else {
       setMessage(`Order marked ${orderStatuses.find((item) => item.value === value)?.label ?? value}.`);
       await load();
     }
+    setUpdatingOrder(null);
   }
 
   if (allowed === null) {
@@ -393,12 +404,17 @@ export default function ShopAdminPage() {
     (a, b) => a.sort_order - b.sort_order,
   );
 
-  return <div className="pageWidth pagePad shopAdminPage">
-    <div className="sectionTitleRow"><div><p className="eyebrow red">Platform administration</p><h1>Shop administration</h1><p className="muted">Products, images, stock and beta order fulfilment.</p></div><ShopIcon /></div>
+  return <div className="pageWidth pagePad shopAdminPage v44ShopAdmin">
+    <div className="sectionTitleRow"><div><p className="eyebrow red">Platform administration</p><h1>Shop administration</h1><p className="muted">Manage products, images and prototype orders.</p></div><ShopIcon /></div>
     {message && <div className="notice success">{message}</div>}
     {error && <div className="notice danger">{error}</div>}
 
-    <div className="shopAdminLayout">
+    <nav className="adminTabs" aria-label="Shop administration sections">
+      <button className={tab === "products" ? "active" : ""} onClick={() => setTab("products")}>Products</button>
+      <button className={tab === "orders" ? "active" : ""} onClick={() => setTab("orders")}>Orders <span>{orders.length}</span></button>
+    </nav>
+
+    {tab === "products" && <div className="shopAdminLayout">
       <form className="settingsCard formStack shopProductEditor" onSubmit={save}>
         <div className="cleanSectionHeader"><div><h2>{editing ? "Edit product" : "Add product"}</h2><p>Use clear details and real product photos.</p></div>{editing && <button type="button" className="textButton" onClick={resetForm}>New product</button>}</div>
         <div className="formGrid two"><label>Name<input value={form.name} onChange={(event) => setForm({ ...form, name: event.target.value })} required /></label><label>Slug<input value={form.slug} onChange={(event) => setForm({ ...form, slug: event.target.value })} placeholder="auto-created-from-name" /></label></div>
@@ -406,48 +422,29 @@ export default function ShopAdminPage() {
         <div className="formGrid two"><label>Manufacturer<input value={form.manufacturer} onChange={(event) => setForm({ ...form, manufacturer: event.target.value })} /></label><label>Model<input value={form.model} onChange={(event) => setForm({ ...form, model: event.target.value })} /></label></div>
         <label>Short description<textarea rows={2} value={form.description} onChange={(event) => setForm({ ...form, description: event.target.value })} placeholder="Shown on the shop card" /></label>
         <label>Full description<textarea rows={5} value={form.fullDescription} onChange={(event) => setForm({ ...form, fullDescription: event.target.value })} placeholder="Detailed product information" /></label>
-        <div className="formGrid two"><label>Features — one per line<textarea rows={5} value={form.features} onChange={(event) => setForm({ ...form, features: event.target.value })} placeholder={"Tamper-evident\nWeather resistant\nEasy to fit"} /></label><label>Specifications — Key: Value<textarea rows={5} value={form.specifications} onChange={(event) => setForm({ ...form, specifications: event.target.value })} placeholder={"Colour: Black\nMaterial: Hardened steel\nWeight: 1.2 kg"} /></label></div>
+        <div className="formGrid two"><label>Features — one per line<textarea rows={5} value={form.features} onChange={(event) => setForm({ ...form, features: event.target.value })} placeholder={"Weather resistant\nEasy to fit\nSuitable for daily use"} /></label><label>Specifications — Key: Value<textarea rows={5} value={form.specifications} onChange={(event) => setForm({ ...form, specifications: event.target.value })} placeholder={"Colour: Black\nMaterial: Steel\nWeight: 1.2 kg"} /></label></div>
         <div className="formGrid three"><label>Price (€)<input type="number" step="0.01" min="0" value={form.price} onChange={(event) => setForm({ ...form, price: event.target.value })} required /></label><label>Sale price (€)<input type="number" step="0.01" min="0" value={form.salePrice} onChange={(event) => setForm({ ...form, salePrice: event.target.value })} placeholder="Optional" /></label><label>Stock<input type="number" min="0" value={form.stock} onChange={(event) => setForm({ ...form, stock: event.target.value })} /></label></div>
         <label>Warranty<input value={form.warranty} onChange={(event) => setForm({ ...form, warranty: event.target.value })} placeholder="e.g. 2 years" /></label>
 
-        <section className="adminImageSection">
-          <div><strong>Product images</strong><small>Main image first, followed by gallery images.</small></div>
-          <label className="button secondary fileButton"><UploadIcon /> Add images<input type="file" accept="image/*" multiple onChange={selectImages} /></label>
-        </section>
-
-        {currentImages.length > 0 && <div className="adminImageGrid">
-          {currentImages.map((image, index) => <article key={image.id}>
-            <img src={publicImageUrl(image.storage_path)} alt={image.alt_text || form.name} />
-            <div><span>{image.is_primary ? "Main image" : `Gallery ${index + 1}`}</span><div className="imageAdminActions"><button type="button" disabled={index === 0} onClick={() => void moveImage(image, -1)}>←</button><button type="button" disabled={index === currentImages.length - 1} onClick={() => void moveImage(image, 1)}>→</button>{!image.is_primary && <button type="button" onClick={() => void setPrimary(image)}>Make main</button>}<button type="button" className="dangerText" onClick={() => void deleteImage(image)}>Delete</button></div></div>
-          </article>)}
-        </div>}
-
-        {pendingImages.length > 0 && <div className="pendingImageGrid">
-          {pendingImages.map((file, index) => <article key={`${file.name}-${file.lastModified}-${index}`}><img src={URL.createObjectURL(file)} alt="Pending upload preview" /><span>{file.name}</span><button type="button" onClick={() => setPendingImages((current) => current.filter((_, itemIndex) => itemIndex !== index))}>Remove</button></article>)}
-        </div>}
+        <section className="adminImageSection"><div><strong>Product images</strong><small>Main image first, followed by gallery images.</small></div><label className="button secondary fileButton"><UploadIcon /> Add images<input type="file" accept="image/*" multiple onChange={selectImages} /></label></section>
+        {currentImages.length > 0 && <div className="adminImageGrid">{currentImages.map((image, index) => <article key={image.id}><img src={publicImageUrl(image.storage_path)} alt={image.alt_text || form.name} /><div><span>{image.is_primary ? "Main image" : `Gallery ${index + 1}`}</span><div className="imageAdminActions"><button type="button" disabled={index === 0} onClick={() => void moveImage(image, -1)}>←</button><button type="button" disabled={index === currentImages.length - 1} onClick={() => void moveImage(image, 1)}>→</button>{!image.is_primary && <button type="button" onClick={() => void setPrimary(image)}>Make main</button>}<button type="button" className="dangerText" onClick={() => void deleteImage(image)}>Delete</button></div></div></article>)}</div>}
+        {pendingImages.length > 0 && <div className="pendingImageGrid">{pendingImages.map((file, index) => <article key={`${file.name}-${file.lastModified}-${index}`}><img src={URL.createObjectURL(file)} alt="Pending upload preview" /><span>{file.name}</span><button type="button" onClick={() => setPendingImages((current) => current.filter((_, itemIndex) => itemIndex !== index))}>Remove</button></article>)}</div>}
 
         <div className="toggleStack"><label className="toggleRow"><input type="checkbox" checked={form.active} onChange={(event) => setForm({ ...form, active: event.target.checked })} /><span><strong>Visible in the shop</strong><small>Hidden products stay in admin but cannot be purchased.</small></span></label><label className="toggleRow"><input type="checkbox" checked={form.featured} onChange={(event) => setForm({ ...form, featured: event.target.checked })} /><span><strong>Featured product</strong><small>Featured items appear first.</small></span></label></div>
         <div className="cleanFormActions"><button type="button" className="button secondary" onClick={resetForm}>Clear</button><button className="button primary" disabled={saving}>{saving ? "Saving…" : "Save product"}</button></div>
       </form>
 
-      <div className="shopAdminContent">
-        <section className="cleanSection adminPanelFirst"><div className="cleanSectionHeader"><div><h2>Products</h2><p>{products.length} products</p></div></div><div className="adminProductList detailed">
-          {products.map((product) => {
-            const images = [...(product.shop_product_images ?? [])].sort((a, b) => Number(b.is_primary) - Number(a.is_primary) || a.sort_order - b.sort_order);
-            const image = images[0];
-            return <article key={product.id}>
-              <div className="adminProductThumb">{image ? <img src={publicImageUrl(image.storage_path)} alt={image.alt_text || product.name} /> : <ShieldIcon />}</div>
-              <div><strong>{product.name}</strong><span>{product.category} · €{(product.price_cents / 100).toFixed(2)} · {product.stock_quantity} stock</span><small>{images.length} image{images.length === 1 ? "" : "s"}</small></div>
-              <span className={`status ${product.is_active ? "safe" : "transfer"}`}>{product.is_active ? "active" : "hidden"}</span>
-              <button onClick={() => edit(product)}>Edit</button>
-            </article>;
-          })}
-        </div></section>
+      <section className="cleanSection adminProductPanel"><div className="cleanSectionHeader"><div><h2>Products</h2><p>{products.length} products</p></div><button className="button secondary" onClick={resetForm}>Add product</button></div><div className="adminProductList detailed">
+        {products.map((product) => { const images = [...(product.shop_product_images ?? [])].sort((a, b) => Number(b.is_primary) - Number(a.is_primary) || a.sort_order - b.sort_order); const image = images[0]; return <article key={product.id}><div className="adminProductThumb">{image ? <img src={publicImageUrl(image.storage_path)} alt={image.alt_text || product.name} /> : <ShieldIcon />}</div><div><strong>{product.name}</strong><span>{product.category} · €{(product.price_cents / 100).toFixed(2)} · {product.stock_quantity} stock</span><small>{images.length} image{images.length === 1 ? "" : "s"}</small></div><span className={`status ${product.is_active ? "safe" : "transfer"}`}>{product.is_active ? "active" : "hidden"}</span><button onClick={() => edit(product)}>Edit</button></article>; })}
+      </div></section>
+    </div>}
 
-        <section className="cleanSection"><div className="cleanSectionHeader"><div><h2>Orders</h2><p>Update prototype fulfilment status.</p></div></div><div className="adminOrderList">
-          {orders.length ? orders.map((order) => <article key={order.id}><div><strong>{order.id.slice(0, 8).toUpperCase()}</strong><span>€{(order.total_cents / 100).toFixed(2)} · {new Date(order.created_at).toLocaleDateString("en-IE")}</span></div><select value={order.status} onChange={(event) => void updateStatus(order.id, event.target.value as ShopOrderStatus)}>{orderStatuses.map((status) => <option value={status.value} key={status.value}>{status.label}</option>)}</select></article>) : <p className="muted">No orders yet.</p>}
-        </div></section>
-      </div>
-    </div>
+    {tab === "orders" && <section className="cleanSection adminOrdersPanel"><div className="cleanSectionHeader"><div><h2>Orders</h2><p>Customer details and prototype fulfilment status.</p></div></div><div className="adminOrderList detailedOrders">
+      {orders.length ? orders.map((order) => <article key={order.id}>
+        <div className="adminOrderSummary"><strong>{order.order_number || order.id.slice(0, 8).toUpperCase()}</strong><span>{order.contact_name || "Customer"} · €{(order.total_cents / 100).toFixed(2)}</span><small>{new Date(order.created_at).toLocaleString("en-IE")}</small></div>
+        <div className="adminOrderContact"><span>{order.contact_email || "No email"}</span><span>{order.contact_phone || "No phone"}</span></div>
+        <select value={order.status} disabled={updatingOrder === order.id} onChange={(event) => void updateStatus(order.id, event.target.value as ShopOrderStatus)}>{orderStatuses.map((status) => <option value={status.value} key={status.value}>{status.label}</option>)}</select>
+      </article>) : <p className="muted">No orders yet.</p>}
+    </div></section>}
   </div>;
 }

@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { normaliseOptionalUrl, normaliseSerial } from "@/lib/normalise";
 import { getSupabaseAdmin } from "@/lib/supabase-server";
+import { getPublicAppUrl } from "@/lib/app-url";
 import { escapeEmailHtml, sendToolTrackEmail } from "@/lib/email";
 
 export const runtime = "nodejs";
@@ -46,6 +47,7 @@ async function sendOwnerEmail({
   details,
   listingUrl,
   reporterEmail,
+  appUrl,
 }: {
   to: string;
   sightingId: string;
@@ -56,8 +58,8 @@ async function sendOwnerEmail({
   details: string;
   listingUrl: string | null;
   reporterEmail: string | null;
+  appUrl: string;
 }) {
-  const appUrl = (process.env.NEXT_PUBLIC_APP_URL || "").replace(/\/$/, "");
   const dashboardUrl = appUrl ? `${appUrl}/dashboard#sightings` : "";
   const listingBlock = listingUrl
     ? `<p><strong>Listing:</strong> <a href="${escapeEmailHtml(listingUrl)}">${escapeEmailHtml(listingUrl)}</a></p>`
@@ -210,6 +212,7 @@ export async function POST(request: NextRequest) {
           details,
           listingUrl,
           reporterEmail,
+          appUrl: getPublicAppUrl(request.nextUrl.origin),
         });
         notificationStatus = emailResult.status;
         notificationError = emailResult.error;

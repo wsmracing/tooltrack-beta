@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { escapeEmailHtml, sendToolTrackEmail } from "@/lib/email";
 import { getSupabaseAdmin } from "@/lib/supabase-server";
+import { getPublicAppUrl } from "@/lib/app-url";
 
 function makeCode() {
   return `${Math.random().toString(36).slice(2, 6)}-${Math.random().toString(36).slice(2, 6)}`.toUpperCase();
@@ -26,7 +27,7 @@ export async function POST(request: NextRequest) {
   await admin.from("assets").update({ status: "transfer" }).eq("id", asset.id);
   let emailStatus = "skipped";
   if (recipientEmail) {
-    const appUrl = (process.env.NEXT_PUBLIC_APP_URL || request.nextUrl.origin).replace(/\/$/, "");
+    const appUrl = getPublicAppUrl(request.nextUrl.origin);
     const link = `${appUrl}/transfer?code=${encodeURIComponent(code)}`;
     const result = await sendToolTrackEmail({
       to: recipientEmail,

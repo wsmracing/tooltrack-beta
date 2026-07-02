@@ -720,3 +720,224 @@ create trigger assets_updated_at_trigger before update on public.assets for each
 create or replace function public.log_asset_audit() returns trigger language plpgsql security definer set search_path=public as $$ begin if tg_op='INSERT' then insert into public.asset_audit_log(asset_id,actor_id,action,changes) values(new.id,auth.uid(),'asset_registered',to_jsonb(new)); elsif tg_op='UPDATE' then insert into public.asset_audit_log(asset_id,actor_id,action,changes) values(new.id,auth.uid(),case when old.status is distinct from new.status then 'status_changed' else 'asset_updated' end,jsonb_build_object('before',to_jsonb(old),'after',to_jsonb(new))); end if; return new; end; $$;
 create trigger assets_audit_trigger after insert or update on public.assets for each row execute procedure public.log_asset_audit();
 create trigger assets_plan_limit_trigger before insert on public.assets for each row execute procedure public.enforce_asset_plan_limit();
+
+-- ToolTrack V4.4 full-schema additions: detailed shop catalogue and product imagery.
+alter table public.shop_products add column if not exists sku text;
+alter table public.shop_products add column if not exists full_description text;
+alter table public.shop_products add column if not exists manufacturer text;
+alter table public.shop_products add column if not exists model text;
+alter table public.shop_products add column if not exists warranty text;
+alter table public.shop_products add column if not exists features text[] not null default '{}'::text[];
+alter table public.shop_products add column if not exists specifications jsonb not null default '{}'::jsonb;
+alter table public.shop_products add column if not exists sale_price_cents integer;
+alter table public.shop_products add column if not exists is_featured boolean not null default false;
+alter table public.shop_products add column if not exists updated_at timestamptz not null default now();
+update public.shop_products set sku='TT-'||upper(substr(replace(id::text,'-',''),1,12)) where sku is null or btrim(sku)='';
+alter table public.shop_products alter column sku set default ('TT-'||upper(substr(replace(gen_random_uuid()::text,'-',''),1,12)));
+
+create table if not exists public.shop_product_images (
+ id uuid primary key default gen_random_uuid(),
+ product_id uuid not null references public.shop_products(id) on delete cascade,
+ storage_path text not null unique,
+ alt_text text,
+ sort_order integer not null default 0,
+ is_primary boolean not null default false,
+ created_at timestamptz not null default now()
+);
+create index if not exists shop_product_images_product_idx on public.shop_product_images(product_id,is_primary desc,sort_order,created_at);
+alter table public.shop_product_images enable row level security;
+drop policy if exists "Public read shop product images" on public.shop_product_images;
+create policy "Public read shop product images" on public.shop_product_images for select using(true);
+drop policy if exists "Admins insert shop product images" on public.shop_product_images;
+create policy "Admins insert shop product images" on public.shop_product_images for insert to authenticated with check(public.is_platform_admin());
+drop policy if exists "Admins update shop product images" on public.shop_product_images;
+create policy "Admins update shop product images" on public.shop_product_images for update to authenticated using(public.is_platform_admin()) with check(public.is_platform_admin());
+drop policy if exists "Admins delete shop product images" on public.shop_product_images;
+create policy "Admins delete shop product images" on public.shop_product_images for delete to authenticated using(public.is_platform_admin());
+insert into storage.buckets(id,name,public,file_size_limit,allowed_mime_types)
+values('shop-product-images','shop-product-images',true,8388608,array['image/jpeg','image/png','image/webp','image/gif','image/avif'])
+on conflict(id) do update set public=excluded.public,file_size_limit=excluded.file_size_limit,allowed_mime_types=excluded.allowed_mime_types;
+drop policy if exists "Public view shop product image files" on storage.objects;
+create policy "Public view shop product image files" on storage.objects for select using(bucket_id='shop-product-images');
+drop policy if exists "Admins upload shop product image files" on storage.objects;
+create policy "Admins upload shop product image files" on storage.objects for insert to authenticated with check(bucket_id='shop-product-images' and public.is_platform_admin());
+drop policy if exists "Admins update shop product image files" on storage.objects;
+create policy "Admins update shop product image files" on storage.objects for update to authenticated using(bucket_id='shop-product-images' and public.is_platform_admin()) with check(bucket_id='shop-product-images' and public.is_platform_admin());
+drop policy if exists "Admins delete shop product image files" on storage.objects;
+create policy "Admins delete shop product image files" on storage.objects for delete to authenticated using(bucket_id='shop-product-images' and public.is_platform_admin());
+-- ToolTrack V4.4
+-- Mobile cleanup, checkout compatibility, transfer-code preview and order status repair.
+-- Safe to run after V4.3. Statements are designed to be repeatable.
+
+create extension if not exists pgcrypto;
+
+-- Keep the shop order table compatible with every earlier beta version.
+alter table public.shop_orders add column if not exists order_number text;
+alter table public.shop_orders add column if not exists payment_status text not null default 'not_charged';
+alter table public.shop_orders add column if not exists subtotal_cents integer not null default 0;
+alter table public.shop_orders add column if not exists delivery_cents integer not null default 0;
+alter table public.shop_orders add column if not exists currency text not null default 'EUR';
+alter table public.shop_orders add column if not exists contact_name text;
+alter table public.shop_orders add column if not exists contact_email text;
+alter table public.shop_orders add column if not exists contact_phone text;
+alter table public.shop_orders add column if not exists delivery_address jsonb;
+alter table public.shop_orders add column if not exists notes text;
+alter table public.shop_orders add column if not exists updated_at timestamptz not null default now();
+alter table public.shop_orders add column if not exists status_updated_at timestamptz;
+alter table public.shop_orders add column if not exists status_updated_by uuid references auth.users(id) on delete set null;
+
+update public.shop_orders
+set order_number = 'TT-' || upper(substr(replace(id::text, '-', ''), 1, 10))
+where order_number is null or btrim(order_number) = '';
+
+update public.shop_orders
+set subtotal_cents = coalesce(nullif(subtotal_cents, 0), total_cents, 0),
+    delivery_cents = coalesce(delivery_cents, 0),
+    currency = coalesce(nullif(currency, ''), 'EUR'),
+    payment_status = coalesce(nullif(payment_status, ''), 'not_charged'),
+    contact_name = coalesce(nullif(contact_name, ''), 'ToolTrack customer'),
+    contact_email = coalesce(contact_email, ''),
+    contact_phone = coalesce(contact_phone, ''),
+    delivery_address = coalesce(delivery_address, '{}'::jsonb),
+    updated_at = coalesce(updated_at, created_at, now());
+
+alter table public.shop_orders
+  alter column order_number set default ('TT-' || upper(substr(replace(gen_random_uuid()::text, '-', ''), 1, 10))),
+  alter column payment_status set default 'not_charged',
+  alter column subtotal_cents set default 0,
+  alter column delivery_cents set default 0,
+  alter column currency set default 'EUR',
+  alter column contact_name set default 'ToolTrack customer',
+  alter column contact_email set default '',
+  alter column contact_phone set default '',
+  alter column delivery_address set default '{}'::jsonb;
+
+-- Drop every legacy status check before normalising values.
+do $$
+declare constraint_record record;
+begin
+  for constraint_record in
+    select conname
+    from pg_constraint
+    where conrelid = 'public.shop_orders'::regclass
+      and contype = 'c'
+      and pg_get_constraintdef(oid) ilike '%status%'
+  loop
+    execute format('alter table public.shop_orders drop constraint %I', constraint_record.conname);
+  end loop;
+end $$;
+
+update public.shop_orders
+set status = case lower(coalesce(status, 'pending'))
+  when 'shipped' then 'dispatched'
+  when 'fulfilled' then 'delivered'
+  when 'complete' then 'completed'
+  when 'canceled' then 'cancelled'
+  when 'pending' then 'pending'
+  when 'processing' then 'processing'
+  when 'dispatched' then 'dispatched'
+  when 'delivered' then 'delivered'
+  when 'completed' then 'completed'
+  when 'cancelled' then 'cancelled'
+  else 'pending'
+end;
+
+alter table public.shop_orders
+  add constraint shop_orders_status_check
+  check (status in ('pending', 'processing', 'dispatched', 'delivered', 'completed', 'cancelled'));
+
+-- Earlier order-item tables may require a line total.
+alter table public.shop_order_items add column if not exists line_total_cents integer;
+update public.shop_order_items
+set line_total_cents = unit_price_cents * quantity
+where line_total_cents is null;
+alter table public.shop_order_items alter column line_total_cents set default 0;
+
+-- Use a broad catalogue category for new shop products.
+alter table public.shop_products alter column category set default 'Accessories';
+update public.shop_products set category = 'Accessories' where category = 'Security';
+
+-- Preview a transfer before ownership changes. The serial remains masked.
+create or replace function public.get_asset_transfer_preview(p_code text)
+returns jsonb
+language plpgsql
+security definer
+set search_path = public
+as $$
+declare
+  transfer_record public.ownership_transfers;
+  asset_record public.assets;
+  clean_code text;
+  masked_serial text;
+begin
+  clean_code := regexp_replace(upper(coalesce(p_code, '')), '[^A-Z0-9]', '', 'g');
+  if clean_code = '' then raise exception 'Transfer code is required.'; end if;
+
+  select * into transfer_record
+  from public.ownership_transfers
+  where regexp_replace(upper(transfer_code), '[^A-Z0-9]', '', 'g') = clean_code
+    and status = 'pending'
+    and expires_at > now();
+
+  if transfer_record.id is null then
+    raise exception 'Transfer code is invalid, expired or already used.';
+  end if;
+
+  select * into asset_record from public.assets where id = transfer_record.asset_id;
+  if asset_record.id is null then raise exception 'The transferred asset could not be found.'; end if;
+
+  masked_serial := case
+    when length(asset_record.serial_original) <= 4 then repeat('•', greatest(length(asset_record.serial_original) - 1, 1)) || right(asset_record.serial_original, 1)
+    else repeat('•', length(asset_record.serial_original) - 4) || right(asset_record.serial_original, 4)
+  end;
+
+  return jsonb_build_object(
+    'make', asset_record.make,
+    'model', asset_record.model,
+    'category', asset_record.category,
+    'serial_masked', masked_serial,
+    'expires_at', transfer_record.expires_at,
+    'recipient_restricted', transfer_record.recipient_email is not null
+  );
+end;
+$$;
+grant execute on function public.get_asset_transfer_preview(text) to anon, authenticated;
+
+-- Accept codes with or without dashes/spaces.
+create or replace function public.accept_asset_transfer(p_code text)
+returns text
+language plpgsql
+security definer
+set search_path = public
+as $$
+declare
+  transfer_record public.ownership_transfers;
+  user_email text;
+  clean_code text;
+begin
+  if auth.uid() is null then raise exception 'Sign in required.'; end if;
+  clean_code := regexp_replace(upper(coalesce(p_code, '')), '[^A-Z0-9]', '', 'g');
+
+  select * into transfer_record
+  from public.ownership_transfers
+  where regexp_replace(upper(transfer_code), '[^A-Z0-9]', '', 'g') = clean_code
+    and status = 'pending'
+    and expires_at > now()
+  for update;
+
+  if transfer_record.id is null then raise exception 'Transfer code is invalid, expired or already used.'; end if;
+  user_email := lower(coalesce(auth.jwt()->>'email', ''));
+  if transfer_record.recipient_email is not null and lower(transfer_record.recipient_email) <> user_email then
+    raise exception 'Sign in using the recipient email address.';
+  end if;
+  if transfer_record.from_owner_id = auth.uid() then raise exception 'You cannot transfer an asset to the same account.'; end if;
+
+  update public.assets set owner_id = auth.uid(), organization_id = null, status = 'safe' where id = transfer_record.asset_id;
+  update public.asset_photos set owner_id = auth.uid() where asset_id = transfer_record.asset_id;
+  update public.asset_documents set owner_id = auth.uid() where asset_id = transfer_record.asset_id;
+  update public.theft_reports set owner_id = auth.uid() where asset_id = transfer_record.asset_id;
+  update public.ownership_transfers set status = 'accepted', accepted_by = auth.uid(), accepted_at = now() where id = transfer_record.id;
+  return 'Transfer accepted. The asset is now in your ToolTrack account.';
+end;
+$$;
+grant execute on function public.accept_asset_transfer(text) to authenticated;

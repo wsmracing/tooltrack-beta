@@ -1,3 +1,3 @@
-# ToolTrack V4.3
+# ToolTrack V4.4
 
-Full beta test build: bulk asset media, expanded shop, product galleries, repaired order statuses and Vercel Web Analytics.
+Mobile-first stability and cleanup release: streamlined navigation, simpler dashboard/homepage, reliable checkout, manual transfer claims, canonical email links, cleaner shop admin, friendly errors and support pages.
