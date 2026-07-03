@@ -12,6 +12,18 @@ function requestedDestination() {
   return requested.startsWith("/") && !requested.startsWith("//") ? requested : "/dashboard";
 }
 
+async function notifySignup(email: string, name: string, userId?: string) {
+  try {
+    await fetch("/api/auth/signup-notify", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ email, name, userId }),
+    });
+  } catch {
+    // Non-blocking admin notification only. Account creation should not fail if email notification fails.
+  }
+}
+
 export default function LoginPage() {
   const [mode, setMode] = useState<"login" | "signup">("login");
   const [name, setName] = useState("");
@@ -47,15 +59,18 @@ export default function LoginPage() {
         if (authError) throw authError;
         router.replace(destination); router.refresh();
       } else {
+        const cleanEmail = email.trim().toLowerCase();
+        const cleanName = name.trim();
         const { data, error: authError } = await supabase.auth.signUp({
-          email,
+          email: cleanEmail,
           password,
           options: {
             emailRedirectTo: `${window.location.origin}${destination}`,
-            data: { full_name: name.trim() || undefined },
+            data: { full_name: cleanName || undefined },
           },
         });
         if (authError) throw authError;
+        void notifySignup(cleanEmail, cleanName, data.user?.id);
         if (data.session) { router.replace(destination); router.refresh(); }
         else setMessage("Account created. Check your email for the confirmation link, then sign in.");
       }
