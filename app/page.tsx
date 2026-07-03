@@ -1,4 +1,3 @@
-import Link from "next/link";
 import { HomeSearchHero } from "@/components/home-search-hero";
 import { CameraIcon, FileIcon, ShieldIcon } from "@/components/icons";
 
@@ -9,7 +8,6 @@ export default function HomePage() {
         <h1>Check a tool before you buy.</h1>
         <p className="homeLead">Search a serial number, or create a dated record for your own tools and equipment.</p>
         <HomeSearchHero />
-        <div className="homeActions singleHomeAction"><Link className="button primary large" href="/register">Register an asset</Link></div>
         <p className="homeDisclaimer">A missing record does not guarantee that an item is legitimate. Always inspect the item, seller and purchase evidence.</p>
       </div>
     </section>

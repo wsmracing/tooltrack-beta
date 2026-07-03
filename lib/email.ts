@@ -34,15 +34,9 @@ export async function sendToolTrackEmail({
   }
 
   const configuredFrom = process.env.RESEND_FROM_EMAIL?.trim();
-  const from = configuredFrom || "ToolTrack <onboarding@resend.dev>";
+  const from = configuredFrom || "ToolTrack <noreply@mail.tooltrack.ie>";
   const replyTo = process.env.RESEND_REPLY_TO?.trim() || "support@tooltrack.ie";
-  const testRecipient = process.env.RESEND_TEST_RECIPIENT?.trim().toLowerCase() || "";
-  const deliveredTo = testRecipient || to.trim().toLowerCase();
-  const isRerouted = Boolean(testRecipient && testRecipient !== to.trim().toLowerCase());
-
-  const rerouteNotice = isRerouted
-    ? `<div style="padding:12px 14px;margin-bottom:18px;border:1px solid #e7b8ba;border-radius:8px;background:#fff4f4;color:#741319"><strong>Closed beta email reroute</strong><br>This message was intended for ${escapeEmailHtml(to)}.</div>`
-    : "";
+  const deliveredTo = to.trim().toLowerCase();
 
   const response = await fetch("https://api.resend.com/emails", {
     method: "POST",
@@ -55,12 +49,12 @@ export async function sendToolTrackEmail({
       from,
       to: [deliveredTo],
       reply_to: replyTo,
-      subject: isRerouted ? `[TEST] ${subject}` : subject,
-      html: `${rerouteNotice}${html}`,
+      subject,
+      html,
       text,
       tags: [
         { name: "application", value: "tooltrack" },
-        { name: "environment", value: testRecipient ? "closed-beta" : "production" },
+        { name: "environment", value: process.env.VERCEL_ENV || "production" },
       ],
     }),
   });

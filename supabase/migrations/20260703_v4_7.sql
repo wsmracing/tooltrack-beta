@@ -32,9 +32,6 @@ declare
   v_quantity integer;
 begin
   if auth.uid() is null then raise exception 'Sign in required.'; end if;
-  if coalesce((auth.jwt()->>'email_confirmed_at'), '') = '' then
-    raise exception 'Verify your email address before placing an order.';
-  end if;
   if nullif(btrim(p_contact_name), '') is null then raise exception 'Contact name is required.'; end if;
   if nullif(btrim(p_contact_email), '') is null then raise exception 'Contact email is required.'; end if;
   if nullif(btrim(p_contact_phone), '') is null then raise exception 'Contact phone is required.'; end if;

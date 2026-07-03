@@ -893,3 +893,11 @@ html[data-appearance="dark"] .skeletonCard { background:linear-gradient(90deg,#1
   .accountDropdown.unifiedMobileMenu button{min-height:49px}
   .homeHeroDots{left:11px;bottom:9px}
 }
+
+/* V4.7.1 menu and auth refinements */
+.mobileOnlyMenuItems { display: none; }
+.forgotPasswordLink { margin-top: -4px; text-align: right; }
+.forgotPasswordLink a { color: var(--red); font-weight: 700; font-size: .9rem; }
+@media (max-width: 760px) {
+  .mobileOnlyMenuItems { display: contents; }
+}

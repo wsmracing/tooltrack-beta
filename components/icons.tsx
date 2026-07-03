@@ -28,3 +28,6 @@ export function CloseIcon(props: SVGProps<SVGSVGElement>) { return <svg {...base
 export function MoreIcon(props: SVGProps<SVGSVGElement>) { return <svg {...base} {...props}><circle cx="5" cy="12" r="1" fill="currentColor" stroke="none"/><circle cx="12" cy="12" r="1" fill="currentColor" stroke="none"/><circle cx="19" cy="12" r="1" fill="currentColor" stroke="none"/></svg>; }
 export function TagIcon(props: SVGProps<SVGSVGElement>) { return <svg {...base} {...props}><path d="M20 13 13 20 4 11V4h7z"/><circle cx="8.5" cy="8.5" r="1.5"/></svg>; }
 export function CopyIcon(props: SVGProps<SVGSVGElement>) { return <svg {...base} {...props}><rect x="8" y="8" width="12" height="12" rx="2"/><path d="M16 8V6a2 2 0 0 0-2-2H6a2 2 0 0 0-2 2v8a2 2 0 0 0 2 2h2"/></svg>; }
+
+export function InfoIcon(props: SVGProps<SVGSVGElement>) { return <svg {...base} {...props}><circle cx="12" cy="12" r="9"/><path d="M12 11v6M12 7h.01"/></svg>; }
+export function HelpIcon(props: SVGProps<SVGSVGElement>) { return <svg {...base} {...props}><circle cx="12" cy="12" r="9"/><path d="M9.5 9a2.7 2.7 0 1 1 4.2 2.25c-1.05.7-1.7 1.2-1.7 2.75M12 17h.01"/></svg>; }

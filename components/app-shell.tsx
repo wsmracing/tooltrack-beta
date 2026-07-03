@@ -6,7 +6,7 @@ import { usePathname, useRouter } from "next/navigation";
 import { Brand } from "./brand";
 import { ThemeSwitcher } from "./theme-switcher";
 import {
-  HomeIcon, PlusIcon, SearchIcon, ShopIcon, ToolboxIcon,
+  HelpIcon, HomeIcon, InfoIcon, PlusIcon, SearchIcon, ShopIcon, ToolboxIcon,
   TransferIcon, UserIcon, UsersIcon,
 } from "./icons";
 import { getSupabaseBrowser, isSupabaseConfigured } from "@/lib/supabase-browser";
@@ -116,16 +116,18 @@ export function AppShell({ children }: { children: React.ReactNode }) {
                 {menuLink("/account/orders", "My orders", ShopIcon)}
                 {teamAvailable && menuLink("/team", "Team", UsersIcon)}
                 {menuLink("/account", "Account", UserIcon)}
-                {menuLink("/help", "Help & support")}
+                {menuLink("/help", "Help & support", HelpIcon)}
                 <div className="accountDropdownDivider" />
                 <button type="button" className="accountDropdownLogout" onClick={() => void logout()}>Log out</button>
               </> : <>
-                {menuLink("/", "Home", HomeIcon)}
-                {menuLink("/lookup", "Check a serial", SearchIcon)}
-                {menuLink("/how-it-works", "How it works")}
-                {menuLink("/shop", "Shop", ShopIcon)}
-                {menuLink("/help", "Help & support")}
-                <div className="accountDropdownDivider" />
+                <div className="mobileOnlyMenuItems">
+                  {menuLink("/", "Home", HomeIcon)}
+                  {menuLink("/lookup", "Check a serial", SearchIcon)}
+                  {menuLink("/how-it-works", "How it works", InfoIcon)}
+                  {menuLink("/shop", "Shop", ShopIcon)}
+                  {menuLink("/help", "Help & support", HelpIcon)}
+                  <div className="accountDropdownDivider" />
+                </div>
                 {menuLink("/login", "Sign in", UserIcon)}
                 {menuLink("/login?mode=signup", "Create account", PlusIcon)}
               </>}

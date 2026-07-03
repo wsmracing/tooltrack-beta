@@ -204,7 +204,7 @@ export default function ShopClient() {
           ? "Sign in before placing an order."
           : raw === "EMAIL_NOT_VERIFIED"
             ? "Verify your email address before placing an order. Open Account to resend the verification email."
-            : friendlyError(caught, "The order could not be created. Your basket has been kept; please try again.")
+            : `Order failed: ${caught instanceof Error && caught.message ? caught.message : friendlyError(caught, "The order could not be created. Your basket has been kept; please try again.")}`
       );
     } finally {
       setPlacing(false);
