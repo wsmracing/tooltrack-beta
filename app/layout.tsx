@@ -2,6 +2,7 @@ import type { Metadata, Viewport } from "next";
 import type { ReactNode } from "react";
 
 import "./globals.css";
+import "./v48.css";
 
 import { AppShell } from "@/components/app-shell";
 import { ToolTrackAnalytics } from "@/components/vercel-analytics";
