@@ -3,6 +3,7 @@ import type { ReactNode } from "react";
 
 import "./globals.css";
 import "./v48.css";
+import "./gallery.css";
 
 import { AppShell } from "@/components/app-shell";
 import { ToolTrackAnalytics } from "@/components/vercel-analytics";
