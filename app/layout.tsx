@@ -18,7 +18,8 @@ export const metadata: Metadata = {
   description:
     "Register tools, store purchase and ownership evidence, report theft and check serial numbers before buying used equipment.",
   icons: {
-    icon: "/icon-192.png",
+    icon: "/favicon.svg",
+    shortcut: "/favicon.svg",
     apple: "/icon-192.png",
   },
   robots: {
