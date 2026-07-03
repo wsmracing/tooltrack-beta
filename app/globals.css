@@ -569,3 +569,75 @@ svg { flex: none; }
   .modalBackdrop{padding:10px}.modalCard{max-height:calc(100dvh - 20px);padding:18px}.modalActions{bottom:auto}
   .productCard{border-radius:14px}.productVisual{height:210px}.simplifiedProductCardBody{padding:15px}.compactProductInfoGrid{grid-template-columns:1fr}
 }
+
+/* V4.5.3 account dropdown */
+.headerActions{display:flex;align-items:center;gap:8px}
+.accountMenuWrap{position:relative}
+.headerAccount{background:#fff;color:var(--ink);cursor:pointer}
+.accountMenuCaret{font-size:12px;line-height:1;color:#666;transition:transform .15s ease}
+.headerAccount[aria-expanded="true"] .accountMenuCaret{transform:rotate(180deg)}
+.accountDropdown{position:absolute;z-index:70;top:calc(100% + 10px);right:0;width:240px;display:grid;border:1px solid var(--line);border-radius:14px;background:#fff;box-shadow:0 18px 45px rgba(0,0,0,.16);padding:8px}
+.accountDropdown a,.accountDropdown button{width:100%;min-height:44px;display:flex;align-items:center;gap:11px;border:0;border-radius:9px;background:transparent;padding:10px 11px;color:var(--ink);text-align:left;font:inherit;font-size:14px;font-weight:800}
+.accountDropdown a:hover,.accountDropdown button:hover{background:#f5f5f5}
+.accountDropdown svg{width:20px;height:20px;color:var(--red)}
+.accountDropdownDivider{height:1px;background:var(--line);margin:6px 3px}
+.accountDropdown .accountDropdownLogout{color:var(--red);margin-top:1px}
+
+@media(max-width:720px){
+  .accountMenuCaret{display:none}
+  .accountDropdown{position:fixed;top:calc(var(--header-h) - 3px);right:12px;left:12px;width:auto;padding:9px;border-radius:14px}
+  .accountDropdown a,.accountDropdown button{min-height:48px;font-size:16px}
+}
+
+/* V4.5.5 visual style preview */
+:root,
+html[data-theme="red"] {
+  --red: #d71920;
+  --red-dark: #a80f15;
+  --red-soft: #fff0f1;
+  --accent-ring: rgba(215, 25, 32, .14);
+}
+html[data-theme="navy"] {
+  --red: #184c7a;
+  --red-dark: #103555;
+  --red-soft: #edf5fb;
+  --accent-ring: rgba(24, 76, 122, .15);
+}
+html[data-theme="green"] {
+  --red: #24734a;
+  --red-dark: #185235;
+  --red-soft: #edf8f1;
+  --accent-ring: rgba(36, 115, 74, .15);
+}
+html[data-theme="orange"] {
+  --red: #d95f0b;
+  --red-dark: #a74608;
+  --red-soft: #fff3e9;
+  --accent-ring: rgba(217, 95, 11, .16);
+}
+
+input:focus, select:focus, textarea:focus { box-shadow: 0 0 0 3px var(--accent-ring); }
+
+.themeSwitcher { position: relative; }
+.themeButton { min-height: 40px; display: inline-flex; align-items: center; gap: 8px; border: 1px solid #ddd; border-radius: 10px; background: #fff; padding: 8px 11px; color: var(--ink); font-size: 14px; font-weight: 800; }
+.themeButton:hover { border-color: #aaa; background: #fafafa; }
+.themeButtonDot { width: 14px; height: 14px; border-radius: 50%; box-shadow: 0 0 0 3px #fff, 0 0 0 4px #d7d7d7; }
+.themeDropdown { position: absolute; z-index: 75; top: calc(100% + 10px); right: 0; width: 230px; display: grid; gap: 3px; border: 1px solid var(--line); border-radius: 14px; background: #fff; box-shadow: 0 18px 45px rgba(0,0,0,.16); padding: 9px; }
+.themeDropdown > strong { padding: 7px 9px 8px; font-size: 12px; color: var(--muted); text-transform: uppercase; letter-spacing: .06em; }
+.themeDropdown button { width: 100%; min-height: 42px; display: grid; grid-template-columns: 20px 1fr auto; align-items: center; gap: 10px; border: 0; border-radius: 9px; background: transparent; padding: 9px; text-align: left; font-weight: 800; color: var(--ink); }
+.themeDropdown button:hover, .themeDropdown button.active { background: #f5f5f5; }
+.themeSwatch { width: 17px; height: 17px; border-radius: 50%; }
+.themeTick { color: var(--red); }
+
+.homePhotoStrip { position: relative; width: min(100%, 980px); height: clamp(180px, 25vw, 290px); margin-top: 24px; overflow: hidden; border-radius: 18px; background-image: linear-gradient(90deg, rgba(0,0,0,.48), rgba(0,0,0,.04)), url("https://unsplash.com/photos/wynkDtIrGlI/download?force=true"); background-size: cover; background-position: center 48%; box-shadow: var(--shadow); }
+.homePhotoOverlay { position: absolute; inset: 0; display: flex; flex-direction: column; justify-content: flex-end; align-items: flex-start; padding: 22px; color: #fff; text-align: left; }
+.homePhotoOverlay span { font-size: clamp(22px, 3vw, 34px); font-weight: 950; letter-spacing: -.025em; text-shadow: 0 2px 18px rgba(0,0,0,.45); }
+.homePhotoOverlay small { margin-top: 4px; color: rgba(255,255,255,.82); font-size: 11px; }
+
+@media (max-width: 720px) {
+  .themeButtonLabel { display: none; }
+  .themeButton { width: 40px; justify-content: center; padding: 8px; }
+  .themeDropdown { position: fixed; top: calc(var(--header-h) - 3px); right: 12px; left: 12px; width: auto; }
+  .homePhotoStrip { height: 170px; margin-top: 18px; border-radius: 14px; }
+  .homePhotoOverlay { padding: 16px; }
+}

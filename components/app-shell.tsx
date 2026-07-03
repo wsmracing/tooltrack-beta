@@ -1,9 +1,10 @@
 "use client";
 
 import Link from "next/link";
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { usePathname, useRouter } from "next/navigation";
 import { Brand } from "./brand";
+import { ThemeSwitcher } from "./theme-switcher";
 import {
   CloseIcon,
   HomeIcon,
@@ -25,8 +26,10 @@ export function AppShell({ children }: { children: React.ReactNode }) {
   const [authChecked, setAuthChecked] = useState(false);
   const [teamAvailable, setTeamAvailable] = useState(false);
   const [menuOpen, setMenuOpen] = useState(false);
+  const [accountOpen, setAccountOpen] = useState(false);
+  const accountMenuRef = useRef<HTMLDivElement>(null);
   const closeMenu = useCallback(() => setMenuOpen(false), []);
-  const accountHref = signedIn ? "/account" : "/login";
+  const closeAccountMenu = useCallback(() => setAccountOpen(false), []);
   const homeHref = signedIn ? "/dashboard" : "/";
 
   const primaryNav = useMemo(() => [
@@ -42,7 +45,35 @@ export function AppShell({ children }: { children: React.ReactNode }) {
     return pathname.startsWith(href);
   };
 
-  useEffect(closeMenu, [pathname, closeMenu]);
+  useEffect(() => {
+    closeMenu();
+    closeAccountMenu();
+  }, [pathname, closeMenu, closeAccountMenu]);
+
+
+  useEffect(() => {
+    if (!accountOpen) return;
+
+    const closeOnOutsideClick = (event: MouseEvent | TouchEvent) => {
+      if (!accountMenuRef.current?.contains(event.target as Node)) closeAccountMenu();
+    };
+    const closeOnEscape = (event: KeyboardEvent) => {
+      if (event.key === "Escape") closeAccountMenu();
+    };
+    const closeOnScroll = () => closeAccountMenu();
+
+    document.addEventListener("mousedown", closeOnOutsideClick);
+    document.addEventListener("touchstart", closeOnOutsideClick, { passive: true });
+    document.addEventListener("keydown", closeOnEscape);
+    window.addEventListener("scroll", closeOnScroll, { passive: true });
+
+    return () => {
+      document.removeEventListener("mousedown", closeOnOutsideClick);
+      document.removeEventListener("touchstart", closeOnOutsideClick);
+      document.removeEventListener("keydown", closeOnEscape);
+      window.removeEventListener("scroll", closeOnScroll);
+    };
+  }, [accountOpen, closeAccountMenu]);
 
   useEffect(() => {
     if (!isSupabaseConfigured()) { setAuthChecked(true); return; }
@@ -80,6 +111,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
   async function logout() {
     if (!window.confirm("Log out of ToolTrack?")) return;
     closeMenu();
+    closeAccountMenu();
     if (isSupabaseConfigured()) await getSupabaseBrowser().auth.signOut();
     setSignedIn(false);
     router.replace("/");
@@ -103,18 +135,48 @@ export function AppShell({ children }: { children: React.ReactNode }) {
             <Link href="/lookup">Check</Link>
             <Link href="/assets">Assets</Link>
             <Link href="/register">Add asset</Link>
+            <Link href="/shop">Shop</Link>
           </> : <>
             <Link href="/lookup">Check</Link>
             <Link href="/how-it-works">How it works</Link>
-            <Link href="/login">Sign in</Link>
+            <Link href="/shop">Shop</Link>
           </>}
         </nav>
         <div className="headerActions">
-          <Link className="headerAccount" href={accountHref} aria-label={signedIn ? "Open account" : "Sign in"} onClick={closeMenu}>
-            <UserIcon />
-            <span>{signedIn ? "Account" : "Sign in"}</span>
-          </Link>
-          <button className="headerMenuButton" type="button" aria-label={menuOpen ? "Close menu" : "Open menu"} aria-expanded={menuOpen} onClick={() => setMenuOpen((value) => !value)}>
+          <ThemeSwitcher />
+          <div className="accountMenuWrap" ref={accountMenuRef}>
+            <button
+              className="headerAccount"
+              type="button"
+              aria-label={signedIn ? "Open account menu" : "Open sign in menu"}
+              aria-haspopup="menu"
+              aria-expanded={accountOpen}
+              onClick={() => {
+                closeMenu();
+                setAccountOpen((value) => !value);
+              }}
+            >
+              <UserIcon />
+              <span>{signedIn ? "Account" : "Sign in"}</span>
+              <span className="accountMenuCaret" aria-hidden="true">▾</span>
+            </button>
+            {accountOpen && <nav className="accountDropdown" aria-label={signedIn ? "Account menu" : "Sign in menu"}>
+              {signedIn ? <>
+                <Link href="/account" onClick={closeAccountMenu}><UserIcon /><span>Account</span></Link>
+                <Link href="/account/orders" onClick={closeAccountMenu}><ShopIcon /><span>My orders</span></Link>
+                {teamAvailable && <Link href="/team" onClick={closeAccountMenu}><UsersIcon /><span>Team</span></Link>}
+                <div className="accountDropdownDivider" />
+                <button type="button" className="accountDropdownLogout" onClick={() => void logout()}>Log out</button>
+              </> : <>
+                <Link href="/login" onClick={closeAccountMenu}><UserIcon /><span>Sign in</span></Link>
+                <Link href="/login?mode=signup" onClick={closeAccountMenu}><PlusIcon /><span>Create account</span></Link>
+              </>}
+            </nav>}
+          </div>
+          <button className="headerMenuButton" type="button" aria-label={menuOpen ? "Close menu" : "Open menu"} aria-expanded={menuOpen} onClick={() => {
+            closeAccountMenu();
+            setMenuOpen((value) => !value);
+          }}>
             {menuOpen ? <CloseIcon /> : <MenuIcon />}
           </button>
         </div>
@@ -123,19 +185,13 @@ export function AppShell({ children }: { children: React.ReactNode }) {
         <button className="mobileDrawerBackdrop" type="button" aria-label="Close menu" onClick={closeMenu} />
         <nav className="mobileDrawer" aria-label="More navigation">
           {signedIn && drawerLink("/transfer", "Claim transferred asset", TransferIcon)}
-          {signedIn && teamAvailable && drawerLink("/team", "Team", UsersIcon)}
-          {signedIn && drawerLink("/account/orders", "My orders", ShopIcon)}
           {drawerLink("/shop", "Shop", ShopIcon)}
           {drawerLink("/help", "Help & support")}
-          {signedIn ? <button type="button" className="mobileLogout" onClick={() => void logout()}>Log out</button> : <>
-            {drawerLink("/login?mode=signup", "Create account", UserIcon)}
-            {drawerLink("/login", "Sign in", UserIcon)}
-          </>}
         </nav>
       </>}
     </header>
     <main className="siteMain">{children}</main>
-    <footer className="siteFooter"><div className="pageWidth"><span>ToolTrack</span><nav><Link href="/privacy">Privacy</Link><Link href="/terms">Terms</Link><Link href="/contact">Contact</Link></nav></div></footer>
+    <footer className="siteFooter"><div className="pageWidth"><span>© 2026 ToolTrack Technologies Limited</span><nav><Link href="/privacy">Privacy</Link><Link href="/terms">Terms</Link><Link href="/contact">Contact</Link></nav></div></footer>
     {signedIn && authChecked && <nav className="bottomNav" aria-label="Mobile navigation">
       {primaryNav.map(({ href, label, icon: Icon }) => <Link key={href} href={href} className={isActive(href) ? "active" : ""}><Icon /><span>{label}</span></Link>)}
     </nav>}

@@ -1,4 +1,0 @@
-After copying the V4.5 update, delete these obsolete files if they remain:
-
-TESTING-V4.4.md
-lib/demo-data.ts

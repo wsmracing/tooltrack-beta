@@ -6,7 +6,7 @@ const contentSecurityPolicy = [
   "form-action 'self'",
   "frame-ancestors 'none'",
   "object-src 'none'",
-  "img-src 'self' data: blob: https://*.supabase.co",
+  "img-src 'self' data: blob: https://*.supabase.co https://unsplash.com https://images.unsplash.com",
   "font-src 'self' data:",
   "connect-src 'self' https://*.supabase.co wss://*.supabase.co https://vitals.vercel-insights.com",
   "script-src 'self' 'unsafe-inline' 'unsafe-eval' https://va.vercel-scripts.com",

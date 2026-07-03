@@ -9,6 +9,12 @@ export default function HomePage() {
         <h1>Check a tool before you buy.</h1>
         <p className="homeLead">Search a serial number, or create a dated record for your own tools and equipment.</p>
         <LookupForm />
+        <div className="homePhotoStrip" role="img" aria-label="A real workshop bench with power tools">
+          <div className="homePhotoOverlay">
+            <span>Real tools. Real records.</span>
+            <small>Photograph by Nils Rasmusson · Unsplash</small>
+          </div>
+        </div>
         <div className="homeActions singleHomeAction"><Link className="button primary large" href="/register">Register an asset</Link></div>
         <p className="homeDisclaimer">A missing record does not guarantee that an item is legitimate. Always inspect the item, seller and purchase evidence.</p>
       </div>
