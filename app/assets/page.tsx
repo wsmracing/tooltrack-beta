@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { useEffect, useMemo, useState } from "react";
 import type { User } from "@supabase/supabase-js";
-import { AlertIcon, DownloadIcon, EditIcon, MoreIcon, PlusIcon, SearchIcon, ToolboxIcon, TransferIcon, UploadIcon } from "@/components/icons";
+import { AlertIcon, DownloadIcon, EditIcon, FileIcon, MoreIcon, PlusIcon, SearchIcon, ToolboxIcon, TransferIcon, UploadIcon } from "@/components/icons";
 import { csvEscape, downloadTextFile } from "@/lib/csv";
 import { getPlan } from "@/lib/plans";
 import { getSupabaseBrowser, isSupabaseConfigured } from "@/lib/supabase-browser";
@@ -14,11 +14,25 @@ import { downloadInsuranceSchedule } from "@/lib/pdf-reports";
 
 const defaults = ["Drill / driver","Impact driver","Rotary hammer","Angle grinder","Circular saw","Cut-off saw / consaw","Hand tools","Test equipment","Lawn mower","Chainsaw","Site equipment","Plant / machinery","Tool storage","Other"];
 type Filter = "all" | "registered" | "stolen" | "recovered";
+type StoredPhoto = { asset_id: string; storage_path: string; original_name: string; created_at: string };
+
+async function signPrivateFiles(bucket: string, paths: string[], token?: string) {
+  if (!token || !paths.length) return {} as Record<string, string>;
+  const response = await fetch("/api/storage/sign", {
+    method: "POST",
+    headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
+    body: JSON.stringify({ bucket, paths }),
+  });
+  if (!response.ok) return {} as Record<string, string>;
+  const body = await response.json() as { urls?: Record<string, string> };
+  return body.urls ?? {};
+}
 
 export default function AssetsPage() {
   const [user, setUser] = useState<User | null>(null);
   const [profile, setProfile] = useState<Profile | null>(null);
   const [assets, setAssets] = useState<Asset[]>([]);
+  const [assetPhotoUrls, setAssetPhotoUrls] = useState<Record<string, string>>({});
   const [locations, setLocations] = useState<AssetLocation[]>([]);
   const [loading, setLoading] = useState(true);
   const [query, setQuery] = useState("");
@@ -35,6 +49,7 @@ export default function AssetsPage() {
     if (!isSupabaseConfigured()) { setError("ToolTrack is not connected to its database."); setLoading(false); return; }
     const supabase = getSupabaseBrowser();
     const { data: auth } = await supabase.auth.getUser();
+    const { data: sessionData } = await supabase.auth.getSession();
     setUser(auth.user);
     if (!auth.user) { setLoading(false); return; }
     const [assetResponse, profileResponse, locationResponse] = await Promise.all([
@@ -42,7 +57,21 @@ export default function AssetsPage() {
       supabase.from("profiles").select("*").eq("id", auth.user.id).maybeSingle(),
       supabase.from("asset_locations").select("*").order("name"),
     ]);
-    if (assetResponse.error) setError(friendlyError(assetResponse.error, "Your assets could not be loaded.")); else setAssets((assetResponse.data ?? []) as Asset[]);
+    if (assetResponse.error) {
+      setError(friendlyError(assetResponse.error, "Your assets could not be loaded."));
+    } else {
+      const loadedAssets = (assetResponse.data ?? []) as Asset[];
+      setAssets(loadedAssets);
+      setAssetPhotoUrls({});
+      if (loadedAssets.length) {
+        const assetIds = loadedAssets.map((asset) => asset.id);
+        const { data: photoData } = await supabase.from("asset_photos").select("asset_id, storage_path, original_name, created_at").in("asset_id", assetIds).order("created_at", { ascending: true });
+        const firstPhotos = new Map<string, StoredPhoto>();
+        ((photoData ?? []) as StoredPhoto[]).forEach((photo) => { if (!firstPhotos.has(photo.asset_id)) firstPhotos.set(photo.asset_id, photo); });
+        const signed = await signPrivateFiles("asset-photos", [...firstPhotos.values()].map((photo) => photo.storage_path), sessionData.session?.access_token);
+        setAssetPhotoUrls(Object.fromEntries([...firstPhotos.entries()].map(([assetId, photo]) => [assetId, signed[photo.storage_path] ?? ""])));
+      }
+    }
     if (profileResponse.data) setProfile(profileResponse.data as Profile);
     if (locationResponse.data) setLocations(locationResponse.data as AssetLocation[]);
     setLoading(false);
@@ -95,7 +124,8 @@ export default function AssetsPage() {
 
     {filtered.length ? <div className="assetGrid">{filtered.map((asset) => {
       const market = effectiveMarketStatus(asset);
-      return <article className={`assetCard assetCardV4 ${selected.has(asset.id) ? "selected" : ""}`} key={asset.id}>{bulk && canBulk && <label className="assetSelect"><input type="checkbox" checked={selected.has(asset.id)} onChange={() => toggle(asset.id)} /></label>}<Link href={`/asset/${asset.id}`} className="assetCardLink"><div className="assetIcon"><ToolboxIcon /></div><div className="assetMain"><div className="assetTop"><h3>{asset.make} {asset.model}</h3><span className={`status ${asset.status}`}>{assetStatusLabel(asset.status)}</span></div><p>{asset.category}</p><dl><div><dt>Serial</dt><dd>{asset.serial_original}</dd></div>{market === "for_sale" && <div><dt>Sale</dt><dd>Active</dd></div>}{asset.storage_location && <div><dt>Location</dt><dd>{asset.storage_location}</dd></div>}</dl></div>{asset.status === "stolen" && <AlertIcon className="assetAlert" />}</Link></article>;
+      const photoUrl = assetPhotoUrls[asset.id];
+      return <article className={`assetCard assetCardV4 ${selected.has(asset.id) ? "selected" : ""}`} key={asset.id}>{bulk && canBulk && <label className="assetSelect"><input type="checkbox" checked={selected.has(asset.id)} onChange={() => toggle(asset.id)} /></label>}<Link href={`/asset/${asset.id}`} className="assetCardLink"><div className={`assetIcon assetThumb${photoUrl ? " hasImage" : ""}`}>{photoUrl ? <img src={photoUrl} alt={`${asset.make} ${asset.model}`} /> : <FileIcon />}</div><div className="assetMain"><div className="assetTop"><h3>{asset.make} {asset.model}</h3><span className={`status ${asset.status}`}>{assetStatusLabel(asset.status)}</span></div><p>{asset.category}</p><dl><div><dt>Serial</dt><dd>{asset.serial_original}</dd></div>{market === "for_sale" && <div><dt>Sale</dt><dd>Active</dd></div>}{asset.storage_location && <div><dt>Location</dt><dd>{asset.storage_location}</dd></div>}</dl></div>{asset.status === "stolen" && <AlertIcon className="assetAlert" />}</Link></article>;
     })}</div> : <div className="emptyPanel"><ToolboxIcon /><h2>{assets.length ? "No matching assets" : "No assets registered yet"}</h2><Link className="button primary" href="/register">Register an asset</Link></div>}
   </div>;
 }
