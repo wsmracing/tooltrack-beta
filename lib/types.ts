@@ -156,6 +156,8 @@ export interface PublicLookupResult {
   locationArea?: string;
   publicReference?: string;
   message: string;
+  ownedByCurrentUser?: boolean;
+  assetId?: string;
 }
 
 export interface CatalogueItem {
