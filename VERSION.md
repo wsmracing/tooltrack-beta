@@ -1,7 +1,9 @@
-# ToolTrack V4.7.4
+# ToolTrack V4.7.6
 
-Build fix for V4.7.3.
+Checkout and logo hotfix.
 
-- Updated the public lookup result TypeScript type to include the owner-aware lookup fields added in V4.7.3.
-- Fixes the Vercel build error where `ownedByCurrentUser` was returned by `/app/api/lookup/route.ts` but was missing from `PublicLookupResult`.
+- Fixes shop checkout failure caused by `shop_order_items.sku` being inserted as null.
+- Order item rows now include a SKU from the product record, with a safe fallback.
+- Replaces the previous cartoon/shield-style mark with a completely redesigned abstract asset-tag/track logo.
+- Keeps the V4.7.5 checkout debug messages for beta testing.
 - No Supabase schema changes.

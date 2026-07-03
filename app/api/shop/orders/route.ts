@@ -88,7 +88,7 @@ export async function POST(request: NextRequest) {
     const unitPrice = product.sale_price_cents !== null && product.sale_price_cents < product.price_cents ? product.sale_price_cents : product.price_cents;
     const lineTotal = unitPrice * quantity;
     subtotal += lineTotal;
-    lines.push({ product_id: product.id, product_name: product.name, unit_price_cents: unitPrice, quantity, line_total_cents: lineTotal });
+    lines.push({ product_id: product.id, sku: product.sku || `TT-${product.id}`, product_name: product.name, unit_price_cents: unitPrice, quantity, line_total_cents: lineTotal });
   }
 
   const orderNumber = "TT-" + new Date().toISOString().slice(2, 10).replace(/-/g, "") + "-" + crypto.randomUUID().replace(/-/g, "").slice(0, 6).toUpperCase();

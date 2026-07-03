@@ -933,3 +933,50 @@ html[data-appearance="dark"] .backLink { color:#ff5a5f; }
   .assetPhotoGrid{grid-template-columns:repeat(2,minmax(0,1fr));}
   .assetSubGrid .historyCard{grid-column:auto;}
 }
+
+
+/* ToolTrack V4.7.6 — complete logo rethink: abstract asset tag, no shield/mascot */
+.brand {
+  gap: 11px;
+}
+.brandMark {
+  width: 40px;
+  height: 40px;
+  clip-path: none;
+  border-radius: 0;
+  background: transparent;
+  box-shadow: none;
+  color: var(--red);
+}
+.brandMark svg {
+  width: 40px;
+  height: 40px;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 2.2;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+.brandMark .brandTagBody {
+  fill: rgba(215, 25, 32, .10);
+  stroke-width: 2.4;
+}
+.brandMark .brandTrackLine {
+  opacity: .78;
+  stroke-width: 1.8;
+}
+.brandMark .brandT {
+  stroke: currentColor;
+  stroke-width: 2.8;
+}
+.brandMark .brandScan {
+  opacity: .55;
+  stroke-width: 1.7;
+}
+.brandText {
+  font-size: 21px;
+  letter-spacing: -.05em;
+}
+[data-theme="dark"] .brandMark .brandTagBody {
+  fill: rgba(239, 47, 54, .14);
+}
