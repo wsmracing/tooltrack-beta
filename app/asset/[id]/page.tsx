@@ -21,6 +21,7 @@ export default function AssetPage() {
   const [profile, setProfile] = useState<Profile | null>(null);
   const [photos, setPhotos] = useState<StoredFile[]>([]);
   const [documents, setDocuments] = useState<StoredFile[]>([]);
+  const [photoUrls, setPhotoUrls] = useState<Record<string, string>>({});
   const [audit, setAudit] = useState<AssetAuditEntry[]>([]);
   const [transfers, setTransfers] = useState<OwnershipTransfer[]>([]);
   const [theftReport, setTheftReport] = useState<TheftReport | null>(null);
@@ -56,7 +57,15 @@ export default function AssetPage() {
     ]);
     if (assetResponse.error) setError(friendlyError(assetResponse.error, "This asset could not be loaded.")); else setAsset(assetResponse.data as Asset);
     if (profileResponse.data) setProfile(profileResponse.data as Profile);
-    if (photoResponse.data) setPhotos(photoResponse.data as StoredFile[]);
+    if (photoResponse.data) {
+      const loadedPhotos = photoResponse.data as StoredFile[];
+      setPhotos(loadedPhotos);
+      const signedPhotoEntries = await Promise.all(loadedPhotos.map(async (photo) => {
+        const { data } = await supabase.storage.from("asset-photos").createSignedUrl(photo.storage_path, 3600);
+        return [photo.id, data?.signedUrl || ""] as const;
+      }));
+      setPhotoUrls(Object.fromEntries(signedPhotoEntries.filter(([, url]) => Boolean(url))));
+    }
     if (documentResponse.data) setDocuments(documentResponse.data as StoredFile[]);
     if (auditResponse.data) setAudit(auditResponse.data as AssetAuditEntry[]);
     if (transferResponse.data) setTransfers(transferResponse.data as OwnershipTransfer[]);
@@ -192,8 +201,9 @@ export default function AssetPage() {
     </article>
     {message && <div className="notice success">{message}</div>}{error && <div className="notice danger">{error}</div>}
 
-    <div className="assetSubGrid"><section className="settingsCard"><div className="dashboardSectionHeading"><div><h2>Private evidence</h2><p className="muted">Files are available only to authorised account members.</p></div><FileIcon /></div><div className="privateFileList">{photos.map((file) => <button type="button" key={file.id} onClick={() => void openPrivateFile("asset-photos", file.storage_path)}><DownloadIcon /><span><strong>{file.original_name}</strong><small>Photo · {new Date(file.created_at).toLocaleDateString("en-IE")}</small></span></button>)}{documents.map((file) => <button type="button" key={file.id} onClick={() => void openPrivateFile("ownership-documents", file.storage_path)}><FileIcon /><span><strong>{file.original_name}</strong><small>Purchase evidence · {new Date(file.created_at).toLocaleDateString("en-IE")}</small></span></button>)}{!photos.length && !documents.length && <p className="muted">No private evidence uploaded.</p>}</div></section>
-      <section className="settingsCard"><div className="dashboardSectionHeading"><div><h2>Record history</h2><p className="muted">Dated changes connected to this asset.</p></div></div><div className="auditList">{audit.length ? audit.map((entry) => <article key={entry.id}><strong>{entry.action.replaceAll("_", " ")}</strong><span>{new Date(entry.created_at).toLocaleString("en-IE")}</span></article>) : <p className="muted">No history entries yet.</p>}</div></section></div>
+    <div className="assetSubGrid"><section className="settingsCard evidenceCard"><div className="dashboardSectionHeading"><div><h2>Photos</h2><p className="muted">Private asset photos stored with this record.</p></div><FileIcon /></div>{photos.length ? <div className="assetPhotoGrid">{photos.map((file) => <button type="button" key={file.id} onClick={() => void openPrivateFile("asset-photos", file.storage_path)} aria-label={`Open ${file.original_name}`}><span className="assetPhotoThumb">{photoUrls[file.id] ? <img src={photoUrls[file.id]} alt={file.original_name} /> : <FileIcon />}</span><span><strong>{file.original_name}</strong><small>{new Date(file.created_at).toLocaleDateString("en-IE")}</small></span></button>)}</div> : <p className="muted evidenceEmpty">No asset photos uploaded yet.</p>}</section>
+      <section className="settingsCard evidenceCard"><div className="dashboardSectionHeading"><div><h2>Invoice / receipt</h2><p className="muted">Purchase evidence remains private to authorised account members.</p></div><FileIcon /></div>{documents.length ? <div className="privateFileList evidenceDocumentList">{documents.map((file) => <button type="button" key={file.id} onClick={() => void openPrivateFile("ownership-documents", file.storage_path)}><FileIcon /><span><strong>{file.original_name}</strong><small>Purchase evidence · {new Date(file.created_at).toLocaleDateString("en-IE")}</small></span><DownloadIcon /></button>)}</div> : <p className="muted evidenceEmpty">No invoice or receipt uploaded yet.</p>}</section>
+      <section className="settingsCard historyCard"><div className="dashboardSectionHeading"><div><h2>Record history</h2><p className="muted">Dated changes connected to this asset.</p></div></div><div className="auditList">{audit.length ? audit.map((entry) => <article key={entry.id}><strong>{entry.action.replaceAll("_", " ")}</strong><span>{new Date(entry.created_at).toLocaleString("en-IE")}</span></article>) : <p className="muted">No history entries yet.</p>}</div></section></div>
 
     {reportOpen && <div className="modalBackdrop" onClick={() => !saving && setReportOpen(false)}><div className="modalCard" onClick={(event) => event.stopPropagation()}><div className="modalHeader"><AlertIcon /><div><h2>Report this asset stolen</h2><p className="muted">The public record will warn potential buyers.</p></div></div><form className="formStack" onSubmit={report}><label>Date stolen<input type="date" value={date} onChange={(event) => setDate(event.target.value)} required /></label><label>General area<input value={location} onChange={(event) => setLocation(event.target.value)} placeholder="Dublin 12" required /></label><label>Garda / incident reference<input value={gardaRef} onChange={(event) => setGardaRef(event.target.value)} placeholder="Optional" /></label><label>Circumstances<textarea value={circumstances} onChange={(event) => setCircumstances(event.target.value)} rows={3} /></label><label className="checkRow"><input type="checkbox" checked={confirmed} onChange={(event) => setConfirmed(event.target.checked)} /><span>I confirm this is the correct asset.</span></label><div className="formActions modalActions"><button type="button" className="button secondary" onClick={() => setReportOpen(false)}>Cancel</button><button className="button dangerButton" disabled={!confirmed || saving}>{saving ? "Reporting…" : "Report stolen"}</button></div></form></div></div>}
 

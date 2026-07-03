@@ -901,3 +901,35 @@ html[data-appearance="dark"] .skeletonCard { background:linear-gradient(90deg,#1
 @media (max-width: 760px) {
   .mobileOnlyMenuItems { display: contents; }
 }
+
+
+/* ToolTrack V4.7.5: asset detail contrast and evidence thumbnails */
+.assetSubGrid { grid-template-columns: 1fr 1fr; }
+.assetSubGrid .historyCard { grid-column: 1 / -1; }
+.assetPhotoGrid { display:grid; grid-template-columns:repeat(auto-fill,minmax(140px,1fr)); gap:12px; }
+.assetPhotoGrid button { display:grid; gap:8px; text-align:left; border:1px solid var(--line); border-radius:14px; background:#fff; color:var(--ink); padding:9px; overflow:hidden; }
+.assetPhotoThumb { display:grid; place-items:center; aspect-ratio:4/3; overflow:hidden; border-radius:10px; background:#f2f3f5; color:var(--red); }
+.assetPhotoThumb img { width:100%; height:100%; object-fit:cover; display:block; }
+.assetPhotoGrid strong, .evidenceDocumentList strong { overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+.assetPhotoGrid small { color:var(--muted); font-size:12px; }
+.evidenceDocumentList button { grid-template-columns:auto minmax(0,1fr) auto; }
+.evidenceEmpty { border:1px dashed var(--line); border-radius:12px; padding:14px; }
+
+html[data-appearance="dark"] .assetDetailHero { background:#171b21; border-bottom-color:#343a43; color:#f7f8fa; }
+html[data-appearance="dark"] .assetDetailHero h1 { color:#f7f8fa; }
+html[data-appearance="dark"] .assetDetailHero p { color:#c3c9d1; }
+html[data-appearance="dark"] .assetLargeIcon,
+html[data-appearance="dark"] .assetIcon { background:#252b33; color:#f7f8fa; }
+html[data-appearance="dark"] .detailList div { border-bottom-color:#343a43; }
+html[data-appearance="dark"] .detailList dt { color:#c3c9d1; }
+html[data-appearance="dark"] .detailList dd { color:#f7f8fa; }
+html[data-appearance="dark"] .assetPhotoGrid button,
+html[data-appearance="dark"] .assetPhotoThumb { border-color:#3b424c; background:#1a1f26; color:#f7f8fa; }
+html[data-appearance="dark"] .assetPhotoThumb { background:#252b33; }
+html[data-appearance="dark"] .evidenceEmpty { border-color:#3b424c; background:#15191f; }
+html[data-appearance="dark"] .backLink { color:#ff5a5f; }
+
+@media(max-width:720px){
+  .assetPhotoGrid{grid-template-columns:repeat(2,minmax(0,1fr));}
+  .assetSubGrid .historyCard{grid-column:auto;}
+}

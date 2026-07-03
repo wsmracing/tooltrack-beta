@@ -144,41 +144,34 @@ export default function ShopClient() {
       const { data: auth } = await supabase.auth.getUser();
       if (!auth.user) throw new Error("SESSION_REQUIRED");
 
-      const orderPayload = {
-        user_id: auth.user.id,
-        status: "pending",
-        payment_status: "not_charged",
-        subtotal_cents: total,
-        delivery_cents: 0,
-        total_cents: total,
-        currency: "EUR",
-        contact_name: checkout.name.trim(),
-        contact_email: checkout.email.trim().toLowerCase(),
-        contact_phone: checkout.phone.trim(),
-        delivery_address: {
-          address1: checkout.address1.trim(),
-          address2: checkout.address2.trim() || null,
-          city: checkout.city.trim(),
-          county: checkout.county.trim(),
-          eircode: checkout.eircode.trim() || null,
-          country: checkout.country.trim() || "Ireland",
-        },
-      };
-
       if (!emailVerified) throw new Error("EMAIL_NOT_VERIFIED");
 
       const normalizedPhone = checkout.phone.trim().replace(/^0/, "+353").replace(/[\s()-]/g, "");
-      const { data: orderData, error: orderError } = await supabase.rpc("place_shop_order", {
-        p_contact_name: orderPayload.contact_name,
-        p_contact_email: orderPayload.contact_email,
-        p_contact_phone: normalizedPhone,
-        p_delivery_address: orderPayload.delivery_address,
-        p_items: items.map((product) => ({
-          product_id: product.id,
-          quantity: product.quantity,
-        })),
+      const { data: sessionData } = await supabase.auth.getSession();
+      const token = sessionData.session?.access_token;
+      if (!token) throw new Error("SESSION_REQUIRED");
+
+      const response = await fetch("/api/shop/orders", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify({
+          items: items.map((product) => ({ productId: product.id, quantity: product.quantity })),
+          contactName: checkout.name.trim(),
+          contactEmail: checkout.email.trim().toLowerCase(),
+          contactPhone: normalizedPhone,
+          address1: checkout.address1.trim(),
+          address2: checkout.address2.trim(),
+          city: checkout.city.trim(),
+          county: checkout.county.trim(),
+          postcode: checkout.eircode.trim().toUpperCase(),
+          country: checkout.country.trim() || "Ireland",
+        }),
       });
-      if (orderError) throw orderError;
+      const orderData = await response.json().catch(() => null) as { order?: { order_number?: string }; error?: string; debug?: string } | null;
+      if (!response.ok) throw new Error(orderData?.debug || orderData?.error || `Order API failed with HTTP ${response.status}.`);
 
       if (saveDelivery) {
         const { error: profileError } = await supabase.from("profiles").update({
@@ -193,10 +186,9 @@ export default function ShopClient() {
         if (profileError) console.warn("Order created, but delivery details were not saved.", profileError);
       }
 
-      const created = Array.isArray(orderData) ? orderData[0] : orderData;
       clearShopCart();
       setCheckoutOpen(false);
-      setMessage(`Order ${created?.order_number || "created"} saved. We will contact you to confirm payment and delivery.`);
+      setMessage(`Order ${orderData?.order?.order_number || "created"} saved. We will contact you to confirm payment and delivery.`);
     } catch (caught) {
       const raw = caught instanceof Error ? caught.message : "";
       setError(
