@@ -761,3 +761,37 @@ html[data-appearance="dark"] .homePhotoCredit { color: rgba(255,255,255,.82); }
   .homeSearchHero .lookupInputRow .button { width: 100%; }
   .homePhotoCredit { right: 10px; bottom: 7px; }
 }
+
+/* ToolTrack V4.6.7 private beta gate */
+.betaGateMain { min-height: 100vh; }
+.betaGate {
+  min-height: 100vh;
+  display: grid;
+  place-items: center;
+  padding: 24px;
+  background:
+    radial-gradient(circle at 50% -15%, rgba(215, 25, 32, .24), transparent 38%),
+    linear-gradient(145deg, #15171a 0%, #090a0b 100%);
+}
+.betaGateCard {
+  width: min(100%, 470px);
+  border: 1px solid rgba(255, 255, 255, .13);
+  border-radius: 20px;
+  background: rgba(21, 23, 26, .96);
+  box-shadow: 0 28px 90px rgba(0, 0, 0, .48);
+  padding: clamp(26px, 6vw, 42px);
+  color: #fff;
+}
+.betaGateBrand { display: inline-flex; align-items: center; gap: 10px; margin-bottom: 34px; font-weight: 950; letter-spacing: -.04em; }
+.betaGateBrand .brandText { font-size: 22px; }
+.betaGateBrand .brandText span { color: #ef3339; }
+.betaGateBadge { width: fit-content; margin: 0 0 14px; border-radius: 999px; background: rgba(215, 25, 32, .18); color: #ff7378; padding: 7px 11px; font-size: 12px; font-weight: 900; letter-spacing: .1em; text-transform: uppercase; }
+.betaGateCard h1 { margin-bottom: 13px; font-size: clamp(31px, 8vw, 44px); }
+.betaGateLead { margin-bottom: 26px; color: #b9bcc1; font-size: 16px; }
+.betaGateForm { display: grid; gap: 14px; }
+.betaGateForm label { color: #f5f5f5; }
+.betaGateForm input { border-color: #45484d; background: #0e0f11; color: #fff; }
+.betaGateForm input:focus { border-color: #ef3339; box-shadow: 0 0 0 3px rgba(215, 25, 32, .2); }
+.betaGateButton { width: 100%; margin-top: 2px; }
+.betaGateError { margin: -2px 0 0; border-radius: 9px; background: rgba(215, 25, 32, .14); color: #ff8589; padding: 10px 12px; font-size: 13px; font-weight: 700; }
+.betaGateFootnote { margin: 22px 0 0; color: #7f8389; font-size: 12px; }

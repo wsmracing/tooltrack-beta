@@ -22,6 +22,11 @@ export const metadata: Metadata = {
     icon: "/icon-192.png",
     apple: "/icon-192.png",
   },
+  robots: {
+    index: false,
+    follow: false,
+    noarchive: true,
+  },
 };
 
 export const viewport: Viewport = {

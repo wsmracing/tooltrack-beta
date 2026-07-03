@@ -12,23 +12,13 @@ function safeCompare(first: string, second: string): boolean {
   const firstBuffer = Buffer.from(first);
   const secondBuffer = Buffer.from(second);
 
-  if (firstBuffer.length !== secondBuffer.length) {
-    return false;
-  }
-
-  return timingSafeEqual(firstBuffer, secondBuffer);
+  return firstBuffer.length === secondBuffer.length && timingSafeEqual(firstBuffer, secondBuffer);
 }
 
 function safeReturnPath(value: unknown): string {
-  if (
-    typeof value === "string" &&
-    value.startsWith("/") &&
-    !value.startsWith("//")
-  ) {
-    return value;
-  }
-
-  return "/";
+  return typeof value === "string" && value.startsWith("/") && !value.startsWith("//")
+    ? value
+    : "/";
 }
 
 export async function POST(request: NextRequest) {
@@ -37,7 +27,7 @@ export async function POST(request: NextRequest) {
   if (!betaCode) {
     return NextResponse.json(
       { error: "Beta access is not configured." },
-      { status: 503 },
+      { status: 503, headers: { "Cache-Control": "no-store" } },
     );
   }
 
@@ -48,15 +38,12 @@ export async function POST(request: NextRequest) {
   } catch {
     return NextResponse.json(
       { error: "Invalid request." },
-      { status: 400 },
+      { status: 400, headers: { "Cache-Control": "no-store" } },
     );
   }
 
   const submittedCode =
-    typeof body === "object" &&
-    body !== null &&
-    "code" in body &&
-    typeof body.code === "string"
+    typeof body === "object" && body !== null && "code" in body && typeof body.code === "string"
       ? body.code
       : "";
 
@@ -65,20 +52,17 @@ export async function POST(request: NextRequest) {
       ? safeReturnPath(body.returnTo)
       : "/";
 
-  const submittedHash = hashValue(submittedCode.trim());
+  const submittedHash = hashValue(submittedCode);
   const expectedHash = hashValue(betaCode);
 
   if (!safeCompare(submittedHash, expectedHash)) {
     return NextResponse.json(
       { error: "Incorrect access code." },
-      { status: 401 },
+      { status: 401, headers: { "Cache-Control": "no-store" } },
     );
   }
 
-  const response = NextResponse.json({
-    success: true,
-    redirectTo: returnTo,
-  });
+  const response = NextResponse.json({ success: true, redirectTo: returnTo });
 
   response.cookies.set({
     name: COOKIE_NAME,

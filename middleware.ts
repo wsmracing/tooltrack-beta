@@ -11,32 +11,31 @@ async function hashValue(value: string): Promise<string> {
     .join("");
 }
 
+function addPrivateBetaHeaders(response: NextResponse): NextResponse {
+  response.headers.set("X-Robots-Tag", "noindex, nofollow, noarchive");
+  response.headers.set("Cache-Control", "private, no-store, max-age=0");
+  return response;
+}
+
 export async function middleware(request: NextRequest) {
   const { pathname, search } = request.nextUrl;
 
-  const publicPaths = [
-    "/beta-access",
-    "/api/beta-access",
-    "/favicon.ico",
-    "/robots.txt",
-    "/manifest.json",
-    "/sw.js",
-  ];
-
-  const isPublicPath =
-    publicPaths.some(
-      (path) => pathname === path || pathname.startsWith(`${path}/`),
-    ) ||
-    pathname.startsWith("/_next/") ||
+  const isPublicTechnicalRoute =
+    pathname === "/beta-access" ||
+    pathname === "/api/beta-access" ||
+    pathname.startsWith("/api/auth/") ||
+    pathname === "/auth/callback" ||
     pathname.startsWith("/.well-known/") ||
-    /\.(?:svg|png|jpg|jpeg|gif|webp|ico|css|js|woff|woff2|ttf|map)$/i.test(
-      pathname,
-    );
+    pathname.startsWith("/_next/") ||
+    pathname === "/favicon.ico" ||
+    pathname === "/manifest.webmanifest" ||
+    pathname === "/sw.js" ||
+    pathname === "/icon-192.png" ||
+    pathname === "/icon-512.png" ||
+    /\.(?:svg|png|jpg|jpeg|gif|webp|ico|css|js|woff|woff2|ttf|map)$/i.test(pathname);
 
-  if (isPublicPath) {
-    const response = NextResponse.next();
-    response.headers.set("X-Robots-Tag", "noindex, nofollow, noarchive");
-    return response;
+  if (isPublicTechnicalRoute) {
+    return addPrivateBetaHeaders(NextResponse.next());
   }
 
   const betaCode = process.env.BETA_ACCESS_CODE;
@@ -49,6 +48,7 @@ export async function middleware(request: NextRequest) {
         headers: {
           "Content-Type": "text/plain; charset=utf-8",
           "X-Robots-Tag": "noindex, nofollow, noarchive",
+          "Cache-Control": "private, no-store, max-age=0",
         },
       },
     );
@@ -58,26 +58,17 @@ export async function middleware(request: NextRequest) {
   const suppliedCookie = request.cookies.get(COOKIE_NAME)?.value;
 
   if (suppliedCookie !== expectedCookie) {
-    const loginUrl = request.nextUrl.clone();
-
-    loginUrl.pathname = "/beta-access";
-    loginUrl.search = "";
+    const accessUrl = request.nextUrl.clone();
+    accessUrl.pathname = "/beta-access";
+    accessUrl.search = "";
 
     const returnTo = `${pathname}${search}`;
+    if (returnTo !== "/") accessUrl.searchParams.set("returnTo", returnTo);
 
-    if (returnTo !== "/") {
-      loginUrl.searchParams.set("returnTo", returnTo);
-    }
-
-    const response = NextResponse.redirect(loginUrl);
-    response.headers.set("X-Robots-Tag", "noindex, nofollow, noarchive");
-    return response;
+    return addPrivateBetaHeaders(NextResponse.redirect(accessUrl));
   }
 
-  const response = NextResponse.next();
-  response.headers.set("X-Robots-Tag", "noindex, nofollow, noarchive");
-
-  return response;
+  return addPrivateBetaHeaders(NextResponse.next());
 }
 
 export const config = {

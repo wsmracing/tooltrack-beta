@@ -125,6 +125,10 @@ export function AppShell({ children }: { children: React.ReactNode }) {
     </Link>
   );
 
+  if (pathname === "/beta-access") {
+    return <main className="betaGateMain">{children}</main>;
+  }
+
   return <>
     <header className="siteHeader">
       <div className="headerInner">

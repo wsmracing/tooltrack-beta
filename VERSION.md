@@ -1,9 +1,10 @@
-# ToolTrack V4.5.6
+# ToolTrack V4.6.7
 
-Homepage and domain polish:
+Private beta protection release:
 
-- Serial lookup is now placed inside the real workshop image.
-- ToolTrack logo always returns to the public homepage.
-- Four-colour preview removed and replaced with a persistent light/dark toggle.
-- Canonical production URL changed to `https://tooltrack.ie`.
-- Service-worker cache bumped to prevent stale V4.5.5 styling.
+- Added a site-wide private beta access-code gate.
+- Added secure, HTTP-only beta access cookie valid for 14 days.
+- Added a ToolTrack-styled private beta screen.
+- Added noindex, nofollow and noarchive protection during testing.
+- Prevented the service worker from caching HTML pages or bypassing the beta gate.
+- Preserved the V4.5.6 homepage, domain, theme and navigation updates.
