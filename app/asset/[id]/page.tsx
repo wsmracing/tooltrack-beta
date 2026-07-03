@@ -14,14 +14,29 @@ import { downloadGardaEvidenceReport, downloadInsuranceSchedule } from "@/lib/pd
 type StoredFile = { id: string; storage_path: string; original_name: string; created_at: string; notes?: string | null };
 type TheftReport = { theft_date?: string | null; location_area?: string | null; police_reference?: string | null; circumstances?: string | null; public_reference?: string | null; reported_at?: string | null; recovered_at?: string | null };
 
+async function signPrivateFiles(bucket: string, paths: string[], token?: string) {
+  if (!token || !paths.length) return {} as Record<string, string>;
+  const response = await fetch("/api/storage/sign", {
+    method: "POST",
+    headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
+    body: JSON.stringify({ bucket, paths }),
+  });
+  if (!response.ok) return {} as Record<string, string>;
+  const body = await response.json() as { urls?: Record<string, string> };
+  return body.urls ?? {};
+}
+
 export default function AssetPage() {
   const { id } = useParams<{ id: string }>();
+  const router = useRouter();
+
   const [asset, setAsset] = useState<Asset | null>(null);
   const [user, setUser] = useState<User | null>(null);
   const [profile, setProfile] = useState<Profile | null>(null);
   const [photos, setPhotos] = useState<StoredFile[]>([]);
   const [documents, setDocuments] = useState<StoredFile[]>([]);
   const [photoUrls, setPhotoUrls] = useState<Record<string, string>>({});
+  const [documentUrls, setDocumentUrls] = useState<Record<string, string>>({});
   const [audit, setAudit] = useState<AssetAuditEntry[]>([]);
   const [transfers, setTransfers] = useState<OwnershipTransfer[]>([]);
   const [theftReport, setTheftReport] = useState<TheftReport | null>(null);
@@ -40,12 +55,15 @@ export default function AssetPage() {
   const [saving, setSaving] = useState(false);
   const [message, setMessage] = useState("");
   const [error, setError] = useState("");
-  const router = useRouter();
 
   async function load() {
     const supabase = getSupabaseBrowser();
-    const { data: auth } = await supabase.auth.getUser(); setUser(auth.user);
+    const { data: auth } = await supabase.auth.getUser();
+    const { data: sessionData } = await supabase.auth.getSession();
+    const token = sessionData.session?.access_token;
+    setUser(auth.user);
     if (!auth.user) { setLoading(false); return; }
+
     const [assetResponse, profileResponse, photoResponse, documentResponse, auditResponse, transferResponse, theftResponse] = await Promise.all([
       supabase.from("assets").select("*").eq("id", id).single(),
       supabase.from("profiles").select("*").eq("id", auth.user.id).maybeSingle(),
@@ -55,23 +73,23 @@ export default function AssetPage() {
       supabase.from("ownership_transfers").select("*").eq("asset_id", id).order("created_at", { ascending: false }).limit(10),
       supabase.from("theft_reports").select("*").eq("asset_id", id).order("reported_at", { ascending: false }).limit(1).maybeSingle(),
     ]);
+
     if (assetResponse.error) setError(friendlyError(assetResponse.error, "This asset could not be loaded.")); else setAsset(assetResponse.data as Asset);
     if (profileResponse.data) setProfile(profileResponse.data as Profile);
-    if (photoResponse.data) {
-      const loadedPhotos = photoResponse.data as StoredFile[];
-      setPhotos(loadedPhotos);
-      const signedPhotoEntries = await Promise.all(loadedPhotos.map(async (photo) => {
-        const { data } = await supabase.storage.from("asset-photos").createSignedUrl(photo.storage_path, 3600);
-        return [photo.id, data?.signedUrl || ""] as const;
-      }));
-      setPhotoUrls(Object.fromEntries(signedPhotoEntries.filter(([, url]) => Boolean(url))));
-    }
-    if (documentResponse.data) setDocuments(documentResponse.data as StoredFile[]);
+
+    const loadedPhotos = (photoResponse.data ?? []) as StoredFile[];
+    const loadedDocuments = (documentResponse.data ?? []) as StoredFile[];
+    setPhotos(loadedPhotos);
+    setDocuments(loadedDocuments);
+    setPhotoUrls(await signPrivateFiles("asset-photos", loadedPhotos.map((photo) => photo.storage_path), token));
+    setDocumentUrls(await signPrivateFiles("ownership-documents", loadedDocuments.map((document) => document.storage_path), token));
+
     if (auditResponse.data) setAudit(auditResponse.data as AssetAuditEntry[]);
     if (transferResponse.data) setTransfers(transferResponse.data as OwnershipTransfer[]);
     if (theftResponse.data) setTheftReport(theftResponse.data as TheftReport);
     setLoading(false);
   }
+
   useEffect(() => { void load(); }, [id]);
 
   async function accessToken() {
@@ -81,8 +99,11 @@ export default function AssetPage() {
   }
 
   async function openPrivateFile(bucket: string, path: string) {
-    const { data, error: signError } = await getSupabaseBrowser().storage.from(bucket).createSignedUrl(path, 300, { download: true });
-    if (signError) setError(friendlyError(signError, "The private file could not be opened.")); else window.open(data.signedUrl, "_blank", "noopener,noreferrer");
+    const token = await accessToken();
+    const urls = await signPrivateFiles(bucket, [path], token);
+    const url = urls[path];
+    if (!url) { setError("The private file could not be opened."); return; }
+    window.open(url, "_blank", "noopener,noreferrer");
   }
 
   async function assetAction(body: Record<string, unknown>) {
@@ -201,9 +222,11 @@ export default function AssetPage() {
     </article>
     {message && <div className="notice success">{message}</div>}{error && <div className="notice danger">{error}</div>}
 
-    <div className="assetSubGrid"><section className="settingsCard evidenceCard"><div className="dashboardSectionHeading"><div><h2>Photos</h2><p className="muted">Private asset photos stored with this record.</p></div><FileIcon /></div>{photos.length ? <div className="assetPhotoGrid">{photos.map((file) => <button type="button" key={file.id} onClick={() => void openPrivateFile("asset-photos", file.storage_path)} aria-label={`Open ${file.original_name}`}><span className="assetPhotoThumb">{photoUrls[file.id] ? <img src={photoUrls[file.id]} alt={file.original_name} /> : <FileIcon />}</span><span><strong>{file.original_name}</strong><small>{new Date(file.created_at).toLocaleDateString("en-IE")}</small></span></button>)}</div> : <p className="muted evidenceEmpty">No asset photos uploaded yet.</p>}</section>
+    <div className="assetSubGrid">
+      <section className="settingsCard evidenceCard"><div className="dashboardSectionHeading"><div><h2>Photos</h2><p className="muted">Private asset photos stored with this record.</p></div><FileIcon /></div>{photos.length ? <div className="assetPhotoGrid">{photos.map((file) => <button type="button" key={file.id} onClick={() => void openPrivateFile("asset-photos", file.storage_path)} aria-label={`Open ${file.original_name}`}><span className="assetPhotoThumb">{photoUrls[file.storage_path] ? <img src={photoUrls[file.storage_path]} alt={file.original_name} /> : <FileIcon />}</span><span><strong>{file.original_name}</strong><small>{new Date(file.created_at).toLocaleDateString("en-IE")}</small></span></button>)}</div> : <p className="muted evidenceEmpty">No asset photos uploaded yet.</p>}</section>
       <section className="settingsCard evidenceCard"><div className="dashboardSectionHeading"><div><h2>Invoice / receipt</h2><p className="muted">Purchase evidence remains private to authorised account members.</p></div><FileIcon /></div>{documents.length ? <div className="privateFileList evidenceDocumentList">{documents.map((file) => <button type="button" key={file.id} onClick={() => void openPrivateFile("ownership-documents", file.storage_path)}><FileIcon /><span><strong>{file.original_name}</strong><small>Purchase evidence · {new Date(file.created_at).toLocaleDateString("en-IE")}</small></span><DownloadIcon /></button>)}</div> : <p className="muted evidenceEmpty">No invoice or receipt uploaded yet.</p>}</section>
-      <section className="settingsCard historyCard"><div className="dashboardSectionHeading"><div><h2>Record history</h2><p className="muted">Dated changes connected to this asset.</p></div></div><div className="auditList">{audit.length ? audit.map((entry) => <article key={entry.id}><strong>{entry.action.replaceAll("_", " ")}</strong><span>{new Date(entry.created_at).toLocaleString("en-IE")}</span></article>) : <p className="muted">No history entries yet.</p>}</div></section></div>
+      <section className="settingsCard historyCard"><div className="dashboardSectionHeading"><div><h2>Record history</h2><p className="muted">Dated changes connected to this asset.</p></div></div><div className="auditList">{audit.length ? audit.map((entry) => <article key={entry.id}><strong>{entry.action.replaceAll("_", " ")}</strong><span>{new Date(entry.created_at).toLocaleString("en-IE")}</span></article>) : <p className="muted">No history entries yet.</p>}</div></section>
+    </div>
 
     {reportOpen && <div className="modalBackdrop" onClick={() => !saving && setReportOpen(false)}><div className="modalCard" onClick={(event) => event.stopPropagation()}><div className="modalHeader"><AlertIcon /><div><h2>Report this asset stolen</h2><p className="muted">The public record will warn potential buyers.</p></div></div><form className="formStack" onSubmit={report}><label>Date stolen<input type="date" value={date} onChange={(event) => setDate(event.target.value)} required /></label><label>General area<input value={location} onChange={(event) => setLocation(event.target.value)} placeholder="Dublin 12" required /></label><label>Garda / incident reference<input value={gardaRef} onChange={(event) => setGardaRef(event.target.value)} placeholder="Optional" /></label><label>Circumstances<textarea value={circumstances} onChange={(event) => setCircumstances(event.target.value)} rows={3} /></label><label className="checkRow"><input type="checkbox" checked={confirmed} onChange={(event) => setConfirmed(event.target.checked)} /><span>I confirm this is the correct asset.</span></label><div className="formActions modalActions"><button type="button" className="button secondary" onClick={() => setReportOpen(false)}>Cancel</button><button className="button dangerButton" disabled={!confirmed || saving}>{saving ? "Reporting…" : "Report stolen"}</button></div></form></div></div>}
 
