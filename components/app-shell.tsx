@@ -107,16 +107,19 @@ export function AppShell({ children }: { children: React.ReactNode }) {
             </button>
             {accountOpen && <nav className="accountDropdown unifiedMobileMenu" aria-label="ToolTrack menu">
               {signedIn ? <>
-                {menuLink("/dashboard", "Dashboard", HomeIcon)}
-                {menuLink("/lookup", "Check a serial", SearchIcon)}
-                {menuLink("/assets", "My assets", ToolboxIcon)}
-                {menuLink("/register", "Add asset", PlusIcon)}
-                {menuLink("/transfer", "Claim transferred asset", TransferIcon)}
-                {menuLink("/shop", "Shop", ShopIcon)}
+                <div className="mobileOnlyMenuItems">
+                  {menuLink("/dashboard", "Dashboard", HomeIcon)}
+                  {menuLink("/lookup", "Check a serial", SearchIcon)}
+                  {menuLink("/assets", "My assets", ToolboxIcon)}
+                  {menuLink("/register", "Add asset", PlusIcon)}
+                  {menuLink("/transfer", "Claim transferred asset", TransferIcon)}
+                  {menuLink("/shop", "Shop", ShopIcon)}
+                  {menuLink("/help", "Help & support", HelpIcon)}
+                  <div className="accountDropdownDivider" />
+                </div>
+                {menuLink("/account", "Account", UserIcon)}
                 {menuLink("/account/orders", "My orders", ShopIcon)}
                 {teamAvailable && menuLink("/team", "Team", UsersIcon)}
-                {menuLink("/account", "Account", UserIcon)}
-                {menuLink("/help", "Help & support", HelpIcon)}
                 <div className="accountDropdownDivider" />
                 <button type="button" className="accountDropdownLogout" onClick={() => void logout()}>Log out</button>
               </> : <>
