@@ -795,3 +795,101 @@ html[data-appearance="dark"] .homePhotoCredit { color: rgba(255,255,255,.82); }
 .betaGateButton { width: 100%; margin-top: 2px; }
 .betaGateError { margin: -2px 0 0; border-radius: 9px; background: rgba(215, 25, 32, .14); color: #ff8589; padding: 10px 12px; font-size: 13px; font-weight: 700; }
 .betaGateFootnote { margin: 22px 0 0; color: #7f8389; font-size: 12px; }
+
+/* ToolTrack V4.7 — contrast, brand and unified mobile navigation */
+.brandMark {
+  width: 38px;
+  height: 38px;
+  display: grid;
+  place-items: center;
+  clip-path: none;
+  border-radius: 11px;
+  background: linear-gradient(145deg, #ef2f36, #a90f15);
+  box-shadow: 0 8px 20px rgba(215,25,32,.2);
+}
+.brandMark svg { width: 29px; height: 29px; fill: none; stroke: #fff; stroke-width: 1.8; stroke-linecap: round; stroke-linejoin: round; }
+.brandMark svg path:first-child { fill: rgba(255,255,255,.08); stroke-width: 2.1; }
+
+.homeHeroSlides { position:absolute; z-index:-2; inset:0; }
+.homeHeroSlide {
+  position:absolute; inset:0;
+  background-size:cover; background-position:center;
+  opacity:0; transform:scale(1.025);
+  transition:opacity 1.2s ease, transform 10s linear;
+}
+.homeHeroSlide.active { opacity:1; transform:scale(1.065); }
+.homeHeroDots { position:absolute; left:16px; bottom:12px; display:flex; gap:6px; }
+.homeHeroDots span { width:7px; height:7px; border-radius:99px; background:rgba(255,255,255,.42); transition:width .2s, background .2s; }
+.homeHeroDots span.active { width:20px; background:#fff; }
+
+.checkoutSaveDetails { grid-template-columns:auto 1fr; align-items:center; gap:9px; font-weight:700; }
+.checkoutSaveDetails input { width:18px; height:18px; margin:0; }
+
+html[data-appearance="dark"] {
+  --ink:#f7f8fa;
+  --muted:#c3c9d1;
+  --line:#3b424c;
+  --surface:#0f1115;
+  --surface-alt:#171b21;
+  --card-bg:#1a1f26;
+  --field-bg:#12161b;
+  --hover-bg:#262c34;
+}
+html[data-appearance="dark"] .assetCard,
+html[data-appearance="dark"] .assetList article,
+html[data-appearance="dark"] .assetGrid article,
+html[data-appearance="dark"] .statsGrid article,
+html[data-appearance="dark"] .accountTypeSummary,
+html[data-appearance="dark"] .summaryCard,
+html[data-appearance="dark"] .pills button,
+html[data-appearance="dark"] .segmented,
+html[data-appearance="dark"] .segmented button,
+html[data-appearance="dark"] .sightingListingDetails>div,
+html[data-appearance="dark"] .transferCodeBox,
+html[data-appearance="dark"] .sellerCheckPanel {
+  border-color:var(--line);
+  background:var(--card-bg);
+  color:var(--ink);
+}
+html[data-appearance="dark"] .segmented button.active,
+html[data-appearance="dark"] .pills button.active {
+  background:#353c46;
+  color:#fff;
+}
+html[data-appearance="dark"] .resultCard,
+html[data-appearance="dark"] .resultDetails,
+html[data-appearance="dark"] .resultActions {
+  background:var(--card-bg);
+  color:var(--ink);
+}
+html[data-appearance="dark"] .resultCard.safe .resultHeader { background:#173326; }
+html[data-appearance="dark"] .resultCard.stolen .resultHeader { background:#3b181b; }
+html[data-appearance="dark"] .resultCard.warning .resultHeader { background:#382b13; }
+html[data-appearance="dark"] .resultCard.registered .resultHeader { background:#1a2938; }
+html[data-appearance="dark"] .resultCard.none .resultHeader { background:#20252c; }
+html[data-appearance="dark"] .status,
+html[data-appearance="dark"] .verificationBadge { border-color:#4b5562; }
+html[data-appearance="dark"] .muted,
+html[data-appearance="dark"] .smallText,
+html[data-appearance="dark"] .fieldHint,
+html[data-appearance="dark"] .quickGrid small,
+html[data-appearance="dark"] .featureGrid p { color:var(--muted); }
+html[data-appearance="dark"] .emptyPanel { background:#15191f; }
+html[data-appearance="dark"] .lookupDisclaimer { background:#1b2026; color:#d4d8dd; }
+html[data-appearance="dark"] .skeletonCard { background:linear-gradient(90deg,#1b2026,#252b33,#1b2026); background-size:200% 100%; }
+
+@media(max-width:720px){
+  .headerMenuButton,.mobileDrawer,.mobileDrawerBackdrop{display:none!important}
+  .headerAccount{width:42px;padding:8px;justify-content:center}
+  .headerAccount>span{display:none}
+  .accountDropdown.unifiedMobileMenu{
+    top:calc(var(--header-h) - 2px);
+    max-height:calc(100dvh - var(--header-h) - 12px);
+    overflow:auto;
+    overscroll-behavior:contain;
+    padding-bottom:calc(10px + env(safe-area-inset-bottom));
+  }
+  .accountDropdown.unifiedMobileMenu a,
+  .accountDropdown.unifiedMobileMenu button{min-height:49px}
+  .homeHeroDots{left:11px;bottom:9px}
+}

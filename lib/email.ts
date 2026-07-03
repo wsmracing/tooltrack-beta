@@ -35,6 +35,7 @@ export async function sendToolTrackEmail({
 
   const configuredFrom = process.env.RESEND_FROM_EMAIL?.trim();
   const from = configuredFrom || "ToolTrack <onboarding@resend.dev>";
+  const replyTo = process.env.RESEND_REPLY_TO?.trim() || "support@tooltrack.ie";
   const testRecipient = process.env.RESEND_TEST_RECIPIENT?.trim().toLowerCase() || "";
   const deliveredTo = testRecipient || to.trim().toLowerCase();
   const isRerouted = Boolean(testRecipient && testRecipient !== to.trim().toLowerCase());
@@ -53,6 +54,7 @@ export async function sendToolTrackEmail({
     body: JSON.stringify({
       from,
       to: [deliveredTo],
+      reply_to: replyTo,
       subject: isRerouted ? `[TEST] ${subject}` : subject,
       html: `${rerouteNotice}${html}`,
       text,

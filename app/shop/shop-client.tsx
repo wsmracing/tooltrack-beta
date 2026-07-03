@@ -57,6 +57,8 @@ export default function ShopClient() {
   const [checkoutOpen, setCheckoutOpen] = useState(false);
   const [loading, setLoading] = useState(true);
   const [placing, setPlacing] = useState(false);
+  const [saveDelivery, setSaveDelivery] = useState(true);
+  const [emailVerified, setEmailVerified] = useState(false);
   const [message, setMessage] = useState("");
   const [error, setError] = useState("");
 
@@ -89,7 +91,14 @@ export default function ShopClient() {
           name: profile?.display_name?.trim() || profile?.business_name?.trim() || String(auth.user?.user_metadata?.full_name || "").trim(),
           email: auth.user?.email || "",
           phone: profile?.phone || "",
+          address1: profile?.address_line1 || "",
+          address2: profile?.address_line2 || "",
+          city: profile?.city || "",
+          county: profile?.county || "",
+          eircode: profile?.eircode || "",
+          country: profile?.country || "Ireland",
         }));
+        setEmailVerified(Boolean(auth.user.email_confirmed_at));
       }
       setLoading(false);
     })();
@@ -113,6 +122,8 @@ export default function ShopClient() {
     if (!checkout.name.trim()) return "Enter your name before placing the order.";
     if (!/^\S+@\S+\.\S+$/.test(checkout.email.trim())) return "Enter a valid email address.";
     if (!checkout.phone.trim()) return "Enter a contact phone number.";
+    const phoneDigits = checkout.phone.replace(/\D/g, "");
+    if (phoneDigits.length < 9 || phoneDigits.length > 15) return "Enter a valid contact phone number.";
     if (!checkout.address1.trim() || !checkout.city.trim() || !checkout.county.trim()) return "Complete the delivery address.";
     return "";
   }
@@ -154,25 +165,47 @@ export default function ShopClient() {
         },
       };
 
-      const { data: orderData, error: orderError } = await supabase.from("shop_orders").insert(orderPayload).select("id, order_number").single();
+      if (!emailVerified) throw new Error("EMAIL_NOT_VERIFIED");
+
+      const normalizedPhone = checkout.phone.trim().replace(/^0/, "+353").replace(/[\s()-]/g, "");
+      const { data: orderData, error: orderError } = await supabase.rpc("place_shop_order", {
+        p_contact_name: orderPayload.contact_name,
+        p_contact_email: orderPayload.contact_email,
+        p_contact_phone: normalizedPhone,
+        p_delivery_address: orderPayload.delivery_address,
+        p_items: items.map((product) => ({
+          product_id: product.id,
+          quantity: product.quantity,
+        })),
+      });
       if (orderError) throw orderError;
 
-      const { error: itemError } = await supabase.from("shop_order_items").insert(items.map((product) => ({
-        order_id: orderData.id,
-        product_id: product.id,
-        product_name: product.name,
-        quantity: product.quantity,
-        unit_price_cents: productPrice(product),
-        line_total_cents: productPrice(product) * product.quantity,
-      })));
-      if (itemError) throw itemError;
+      if (saveDelivery) {
+        const { error: profileError } = await supabase.from("profiles").update({
+          phone: normalizedPhone,
+          address_line1: checkout.address1.trim(),
+          address_line2: checkout.address2.trim() || null,
+          city: checkout.city.trim(),
+          county: checkout.county.trim(),
+          eircode: checkout.eircode.trim().toUpperCase() || null,
+          country: checkout.country.trim() || "Ireland",
+        }).eq("id", auth.user.id);
+        if (profileError) console.warn("Order created, but delivery details were not saved.", profileError);
+      }
 
+      const created = Array.isArray(orderData) ? orderData[0] : orderData;
       clearShopCart();
       setCheckoutOpen(false);
-      setMessage(`Order ${orderData.order_number || "created"} saved. We will contact you to confirm payment and delivery.`);
+      setMessage(`Order ${created?.order_number || "created"} saved. We will contact you to confirm payment and delivery.`);
     } catch (caught) {
       const raw = caught instanceof Error ? caught.message : "";
-      setError(raw === "SESSION_REQUIRED" ? "Sign in before placing an order." : friendlyError(caught, "The order could not be created. Check your details and try again."));
+      setError(
+        raw === "SESSION_REQUIRED"
+          ? "Sign in before placing an order."
+          : raw === "EMAIL_NOT_VERIFIED"
+            ? "Verify your email address before placing an order. Open Account to resend the verification email."
+            : friendlyError(caught, "The order could not be created. Your basket has been kept; please try again.")
+      );
     } finally {
       setPlacing(false);
     }
@@ -226,7 +259,9 @@ export default function ShopClient() {
           <label>Address line 2<input value={checkout.address2} onChange={(event) => setCheckout({ ...checkout, address2: event.target.value })} autoComplete="address-line2" /></label>
           <div className="formGrid two"><label>Town / city<input value={checkout.city} onChange={(event) => setCheckout({ ...checkout, city: event.target.value })} autoComplete="address-level2" required /></label><label>County<input value={checkout.county} onChange={(event) => setCheckout({ ...checkout, county: event.target.value })} autoComplete="address-level1" required /></label></div>
           <div className="formGrid two"><label>Eircode<input value={checkout.eircode} onChange={(event) => setCheckout({ ...checkout, eircode: event.target.value.toUpperCase() })} autoComplete="postal-code" /></label><label>Country<input value={checkout.country} onChange={(event) => setCheckout({ ...checkout, country: event.target.value })} autoComplete="country-name" /></label></div>
-          <div className="checkoutActions"><button type="button" className="button secondary" onClick={() => setCheckoutOpen(false)}>Back</button><button className="button primary" disabled={placing}>{placing ? "Creating order…" : "Send order request"}</button></div>
+          <label className="checkoutSaveDetails"><input type="checkbox" checked={saveDelivery} onChange={(event) => setSaveDelivery(event.target.checked)} /> <span>Save these delivery details to my account</span></label>
+          {!emailVerified && <div className="notice danger">Your email address must be verified before an order can be placed.</div>}
+          <div className="checkoutActions"><button type="button" className="button secondary" onClick={() => setCheckoutOpen(false)}>Back</button><button className="button primary" disabled={placing || !emailVerified}>{placing ? "Creating order…" : "Send order request"}</button></div>
         </form>}
         <Link className="textLink" href="/account/orders">View my orders</Link>
         <small>Order request only — payment and delivery will be confirmed separately.</small>

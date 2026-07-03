@@ -39,6 +39,12 @@ export interface Profile {
   display_name: string | null;
   business_name: string | null;
   phone: string | null;
+  address_line1?: string | null;
+  address_line2?: string | null;
+  city?: string | null;
+  county?: string | null;
+  eircode?: string | null;
+  country?: string | null;
   account_type: AccountType;
   plan_tier: PlanTier;
   active_organization_id: string | null;

@@ -1,32 +1,19 @@
 import Link from "next/link";
-import { LookupForm } from "@/components/lookup-form";
+import { HomeSearchHero } from "@/components/home-search-hero";
 import { CameraIcon, FileIcon, ShieldIcon } from "@/components/icons";
 
 export default function HomePage() {
   return <>
-    <section className="homeHero v45HomeHero">
+    <section className="homeHero v47HomeHero">
       <div className="pageWidth homeHeroInner">
         <h1>Check a tool before you buy.</h1>
         <p className="homeLead">Search a serial number, or create a dated record for your own tools and equipment.</p>
-
-        <div className="homeSearchHero" role="group" aria-label="Tool serial number check">
-          <div className="homeSearchHeroShade" aria-hidden="true" />
-          <div className="homeSearchHeroContent">
-            <div className="homeSearchIntro">
-              <strong>Check the serial before you pay.</strong>
-              <span>See whether an item has a ToolTrack record or theft report.</span>
-            </div>
-            <LookupForm />
-          </div>
-          <small className="homePhotoCredit">Photograph by Nils Rasmusson · Unsplash</small>
-        </div>
-
+        <HomeSearchHero />
         <div className="homeActions singleHomeAction"><Link className="button primary large" href="/register">Register an asset</Link></div>
         <p className="homeDisclaimer">A missing record does not guarantee that an item is legitimate. Always inspect the item, seller and purchase evidence.</p>
       </div>
     </section>
-
-    <section className="pageWidth sectionBlock homeFeatures v45HomeFeatures">
+    <section className="pageWidth sectionBlock homeFeatures v47HomeFeatures">
       <div className="sectionHeading"><h2>Keep the important details together.</h2></div>
       <div className="featureGrid compactFeatureGrid">
         <article><CameraIcon /><h3>Record the asset</h3><p>Save the serial number, photographs and identifying marks before anything goes wrong.</p></article>

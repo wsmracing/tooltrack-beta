@@ -4,7 +4,6 @@ import type { ReactNode } from "react";
 import "./globals.css";
 
 import { AppShell } from "@/components/app-shell";
-import { PwaRegister } from "@/components/pwa-register";
 import { ToolTrackAnalytics } from "@/components/vercel-analytics";
 
 const publicUrl = process.env.NEXT_PUBLIC_APP_URL || "https://tooltrack.ie";
@@ -17,7 +16,6 @@ export const metadata: Metadata = {
   },
   description:
     "Register tools, store purchase and ownership evidence, report theft and check serial numbers before buying used equipment.",
-  manifest: "/manifest.webmanifest",
   icons: {
     icon: "/icon-192.png",
     apple: "/icon-192.png",
@@ -59,7 +57,6 @@ export default function RootLayout({ children }: Readonly<{ children: ReactNode 
         <script dangerouslySetInnerHTML={{ __html: appearanceScript }} />
       </head>
       <body>
-        <PwaRegister />
         <AppShell>{children}</AppShell>
         <ToolTrackAnalytics />
       </body>
