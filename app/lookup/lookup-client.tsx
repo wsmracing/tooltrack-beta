@@ -6,6 +6,7 @@ import { useSearchParams } from "next/navigation";
 import { AlertIcon, CheckIcon, CopyIcon, SearchIcon, ShieldIcon } from "@/components/icons";
 import { displaySerial, normaliseOptionalUrl } from "@/lib/normalise";
 import { verificationLabel } from "@/lib/asset-status";
+import { getSupabaseBrowser, isSupabaseConfigured } from "@/lib/supabase-browser";
 import type { PublicLookupResult } from "@/lib/types";
 
 const listingSources = ["Adverts.ie", "DoneDeal", "Facebook Marketplace", "eBay", "Gumtree", "Auction or dealer", "Other"];
@@ -27,7 +28,15 @@ export function LookupClient() {
     setError("");
     setResult(null);
     try {
-      const response = await fetch(`/api/lookup?serial=${encodeURIComponent(clean)}`, { cache: "no-store" });
+      let authorization: string | undefined;
+      if (isSupabaseConfigured()) {
+        const { data } = await getSupabaseBrowser().auth.getSession();
+        if (data.session?.access_token) authorization = `Bearer ${data.session.access_token}`;
+      }
+      const response = await fetch(`/api/lookup?serial=${encodeURIComponent(clean)}`, {
+        cache: "no-store",
+        headers: authorization ? { Authorization: authorization } : undefined,
+      });
       const body = await response.json();
       if (!response.ok) throw new Error(body.error || "The serial could not be checked.");
       setResult(body as PublicLookupResult);
@@ -75,7 +84,7 @@ export function LookupClient() {
 function ResultCard({ result, serial }: { result: PublicLookupResult; serial: string }) {
   const stolen = result.lookupState === "stolen";
   const disputed = result.lookupState === "disputed";
-  const confirmationAvailable = ["registered", "for_sale", "recovered"].includes(result.lookupState);
+  const confirmationAvailable = !result.ownedByCurrentUser && ["registered", "for_sale", "recovered"].includes(result.lookupState);
   const [showSightingForm, setShowSightingForm] = useState(false);
   const [sourcePlatform, setSourcePlatform] = useState("");
   const [locationArea, setLocationArea] = useState("");
@@ -134,9 +143,14 @@ function ResultCard({ result, serial }: { result: PublicLookupResult; serial: st
       const normalisedListing = listingUrl.trim() ? normaliseOptionalUrl(listingUrl) : "";
       if (listingUrl.trim() && !normalisedListing) throw new Error("Enter a valid listing address or leave it blank.");
       if (normalisedListing) setListingUrl(normalisedListing);
+      let authorization: string | undefined;
+      if (isSupabaseConfigured()) {
+        const { data } = await getSupabaseBrowser().auth.getSession();
+        if (data.session?.access_token) authorization = `Bearer ${data.session.access_token}`;
+      }
       const response = await fetch("/api/sightings", {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: { "Content-Type": "application/json", ...(authorization ? { Authorization: authorization } : {}) },
         body: JSON.stringify({ serial, sourcePlatform, locationArea, listingUrl: normalisedListing, sellerUsername, listingTitle, askingPrice, reporterEmail, details, website }),
       });
       const body = await response.json();
@@ -163,6 +177,11 @@ function ResultCard({ result, serial }: { result: PublicLookupResult; serial: st
       <div><p>{title}</p><h2>{result.message}</h2></div>
     </div>
 
+    {result.ownedByCurrentUser && result.assetId && <div className="ownerLookupPanel">
+      <div><strong>Your registered asset</strong><span>Manage this record from your ToolTrack account.</span></div>
+      <Link className="button primary" href={`/asset/${result.assetId}`}>View asset</Link>
+    </div>}
+
     {result.found && <>
       <dl className="resultDetails">
         <div><dt>Make</dt><dd>{result.make}</dd></div>
@@ -185,7 +204,7 @@ function ResultCard({ result, serial }: { result: PublicLookupResult; serial: st
       </div>}
     </>}
 
-    {stolen && <div className="resultActions">
+    {stolen && !result.ownedByCurrentUser && <div className="resultActions">
       {!showSightingForm && !sightingSuccess && <button className="button primary" type="button" onClick={() => setShowSightingForm(true)}>Report a sighting</button>}
       <p>Do not confront a seller. Save the listing details and contact An Garda Síochána where appropriate.</p>
       {showSightingForm && !sightingSuccess && <form className="sightingForm" onSubmit={submitSighting}>

@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { maskSerial, normaliseSerial } from "@/lib/normalise";
 import { getSupabaseAdmin } from "@/lib/supabase-server";
 import { checkRateLimit, requestIp } from "@/lib/rate-limit";
+import { authenticatedUser } from "@/lib/server-auth";
 import type { AssetStatus, MarketStatus, PublicLookupResult, PublicLookupState, VerificationLevel } from "@/lib/types";
 
 export const runtime = "nodejs";
@@ -31,7 +32,7 @@ export async function GET(request: NextRequest) {
 
   const { data, error } = await admin
     .from("assets")
-    .select("id, make, model, category, serial_original, status, market_status, sale_expires_at, verification_level, registered_at")
+    .select("id, owner_id, make, model, category, serial_original, status, market_status, sale_expires_at, verification_level, registered_at")
     .eq("serial_normalized", serial)
     .order("registered_at", { ascending: true })
     .limit(2);
@@ -48,6 +49,8 @@ export async function GET(request: NextRequest) {
   }
 
   const asset = data[0];
+  const auth = await authenticatedUser(request);
+  const ownedByCurrentUser = Boolean(auth?.user?.id && auth.user.id === asset.owner_id);
   const duplicate = data.length > 1;
   const status = asset.status as AssetStatus;
   const verificationLevel = (asset.verification_level ?? "registered") as VerificationLevel;
@@ -55,7 +58,9 @@ export async function GET(request: NextRequest) {
   const marketStatus = (duplicate || asset.market_status === "disputed" || verificationLevel === "disputed") ? "disputed" : saleActive ? "for_sale" : "not_for_sale" as MarketStatus;
 
   let lookupState: PublicLookupState = "registered";
-  let message = "This asset is registered. Ask the seller to confirm control of the ToolTrack record before paying.";
+  let message = ownedByCurrentUser
+    ? "This asset is registered to your account."
+    : "This asset is registered. Ask the seller to confirm control of the ToolTrack record before paying.";
 
   if (marketStatus === "disputed") {
     lookupState = "disputed";
@@ -72,6 +77,12 @@ export async function GET(request: NextRequest) {
   } else if (status === "recovered") {
     lookupState = "recovered";
     message = "This asset was previously reported stolen and later marked recovered. Confirm the seller before paying.";
+  }
+
+  if (ownedByCurrentUser) {
+    message = status === "stolen"
+      ? "This stolen asset report belongs to your account."
+      : "This asset is registered to your account.";
   }
 
   let reportedAt: string | undefined;
@@ -107,5 +118,7 @@ export async function GET(request: NextRequest) {
     locationArea,
     publicReference,
     message,
+    ownedByCurrentUser,
+    assetId: ownedByCurrentUser ? asset.id : undefined,
   });
 }

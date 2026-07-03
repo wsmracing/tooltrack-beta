@@ -3,6 +3,7 @@ import { normaliseOptionalUrl, normaliseSerial } from "@/lib/normalise";
 import { getSupabaseAdmin } from "@/lib/supabase-server";
 import { getPublicAppUrl } from "@/lib/app-url";
 import { escapeEmailHtml, sendToolTrackEmail } from "@/lib/email";
+import { authenticatedUser } from "@/lib/server-auth";
 import { checkRateLimit, requestIp } from "@/lib/rate-limit";
 
 export const runtime = "nodejs";
@@ -63,6 +64,7 @@ async function sendOwnerEmail({
     to,
     subject: `New sighting reported for your ${make} ${model}`,
     idempotencyKey: `sighting-${sightingId}`,
+    kind: "sighting",
     text: `A new sighting was reported for your ${make} ${model}. Location: ${locationArea}. Details: ${details}`,
     html: `
       <div style="font-family:Arial,sans-serif;max-width:620px;margin:auto;color:#171717">
@@ -143,6 +145,14 @@ export async function POST(request: NextRequest) {
 
   if (!asset) {
     return NextResponse.json({ error: "No active stolen report was found for this serial number." }, { status: 404 });
+  }
+
+  const auth = await authenticatedUser(request);
+  if (auth?.user.id === asset.owner_id) {
+    return NextResponse.json(
+      { error: "You cannot report a sighting for an asset registered to your own account." },
+      { status: 403 },
+    );
   }
 
   const { data: theftReport, error: theftError } = await admin

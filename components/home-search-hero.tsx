@@ -5,16 +5,16 @@ import { LookupForm } from "@/components/lookup-form";
 
 const slides = [
   {
-    image: "https://images.unsplash.com/photo-1504148455328-c376907d081c?auto=format&fit=crop&w=1800&q=82",
-    credit: "Workshop tools · Unsplash",
+    image: "https://unsplash.com/photos/QvEXI1xquRY/download?force=true&w=1800",
+    credit: "Cordless drill · Rob Dean / Unsplash",
   },
   {
-    image: "https://images.unsplash.com/photo-1530124566582-a618bc2615dc?auto=format&fit=crop&w=1800&q=82",
-    credit: "Professional workshop · Unsplash",
+    image: "https://unsplash.com/photos/8DQz9z99GjU/download?force=true&w=1800",
+    credit: "Angle grinder · Spencer Davis / Unsplash",
   },
   {
-    image: "https://images.unsplash.com/photo-1586864387967-d02ef85d93e8?auto=format&fit=crop&w=1800&q=82",
-    credit: "Tools on site · Unsplash",
+    image: "https://unsplash.com/photos/aQQgXiYJ4kU/download?force=true&w=1800",
+    credit: "Industrial generator · Kenny / Unsplash",
   },
 ];
 

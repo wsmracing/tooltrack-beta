@@ -5,12 +5,13 @@ export function Brand({ onClick, href = "/" }: { onClick?: () => void; href?: st
     <Link className="brand" href={href} aria-label="ToolTrack home" onClick={onClick}>
       <span className="brandMark" aria-hidden="true">
         <svg viewBox="0 0 40 40" role="img">
-          <path d="M20 3 34 9v10c0 9-5.8 15-14 18C11.8 34 6 28 6 19V9l14-6Z" />
-          <path d="M13 15h14M20 10v20M13 25h14" />
-          <circle cx="13" cy="15" r="2" />
-          <circle cx="27" cy="15" r="2" />
-          <circle cx="13" cy="25" r="2" />
-          <circle cx="27" cy="25" r="2" />
+          <rect x="4" y="4" width="32" height="32" rx="9" />
+          <path d="M12 13h16M20 13v15" />
+          <path d="M13 27h14" />
+          <circle cx="12" cy="13" r="1.6" />
+          <circle cx="28" cy="13" r="1.6" />
+          <circle cx="13" cy="27" r="1.6" />
+          <circle cx="27" cy="27" r="1.6" />
         </svg>
       </span>
       <span className="brandText">TOOL<span>TRACK</span></span>
