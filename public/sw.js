@@ -1,4 +1,4 @@
-const CACHE = "tooltrack-beta-v3";
+const CACHE = "tooltrack-v4-5-6";
 const SHELL = ["/", "/lookup", "/manifest.webmanifest", "/icon-192.png"];
 self.addEventListener("install", (event) => event.waitUntil(caches.open(CACHE).then((cache) => cache.addAll(SHELL)).catch(() => undefined)));
 self.addEventListener("activate", (event) => event.waitUntil(caches.keys().then((keys) => Promise.all(keys.filter((key) => key !== CACHE).map((key) => caches.delete(key))))));

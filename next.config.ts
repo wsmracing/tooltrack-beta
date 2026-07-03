@@ -32,6 +32,14 @@ const nextConfig: NextConfig = {
   async headers() {
     return [{ source: "/(.*)", headers: securityHeaders }];
   },
+  async redirects() {
+    return [{
+      source: "/:path*",
+      has: [{ type: "host", value: "tooltrack-beta-ikam.vercel.app" }],
+      destination: "https://tooltrack.ie/:path*",
+      permanent: true,
+    }];
+  },
 };
 
 export default nextConfig;

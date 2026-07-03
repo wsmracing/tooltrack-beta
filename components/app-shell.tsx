@@ -128,7 +128,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
   return <>
     <header className="siteHeader">
       <div className="headerInner">
-        <Brand href={homeHref} onClick={closeMenu} />
+        <Brand href="/" onClick={() => { closeMenu(); closeAccountMenu(); }} />
         <nav className="desktopNav" aria-label="Primary navigation">
           {signedIn ? <>
             <Link href="/dashboard">Dashboard</Link>

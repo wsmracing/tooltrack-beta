@@ -589,55 +589,175 @@ svg { flex: none; }
   .accountDropdown a,.accountDropdown button{min-height:48px;font-size:16px}
 }
 
-/* V4.5.5 visual style preview */
-:root,
-html[data-theme="red"] {
-  --red: #d71920;
-  --red-dark: #a80f15;
-  --red-soft: #fff0f1;
+
+/* V4.5.6 homepage, appearance and domain polish */
+:root {
+  --card-bg: #fff;
+  --field-bg: #fff;
+  --header-bg: rgba(255, 255, 255, .96);
+  --hover-bg: #f5f5f5;
+  --hero-panel: rgba(255,255,255,.95);
   --accent-ring: rgba(215, 25, 32, .14);
+  color-scheme: light;
 }
-html[data-theme="navy"] {
-  --red: #184c7a;
-  --red-dark: #103555;
-  --red-soft: #edf5fb;
-  --accent-ring: rgba(24, 76, 122, .15);
-}
-html[data-theme="green"] {
-  --red: #24734a;
-  --red-dark: #185235;
-  --red-soft: #edf8f1;
-  --accent-ring: rgba(36, 115, 74, .15);
-}
-html[data-theme="orange"] {
-  --red: #d95f0b;
-  --red-dark: #a74608;
-  --red-soft: #fff3e9;
-  --accent-ring: rgba(217, 95, 11, .16);
+
+html[data-appearance="dark"] {
+  --ink: #f4f5f7;
+  --muted: #b6bbc3;
+  --line: #363b43;
+  --surface: #131518;
+  --surface-alt: #1a1d21;
+  --card-bg: #1b1e22;
+  --field-bg: #171a1e;
+  --header-bg: rgba(19, 21, 24, .96);
+  --hover-bg: #272b31;
+  --red-soft: #3b181b;
+  --green-soft: #173326;
+  --amber-soft: #382b13;
+  --hero-panel: rgba(24,27,31,.94);
+  --shadow: 0 14px 34px rgba(0,0,0,.28);
+  color-scheme: dark;
 }
 
 input:focus, select:focus, textarea:focus { box-shadow: 0 0 0 3px var(--accent-ring); }
 
-.themeSwitcher { position: relative; }
-.themeButton { min-height: 40px; display: inline-flex; align-items: center; gap: 8px; border: 1px solid #ddd; border-radius: 10px; background: #fff; padding: 8px 11px; color: var(--ink); font-size: 14px; font-weight: 800; }
-.themeButton:hover { border-color: #aaa; background: #fafafa; }
-.themeButtonDot { width: 14px; height: 14px; border-radius: 50%; box-shadow: 0 0 0 3px #fff, 0 0 0 4px #d7d7d7; }
-.themeDropdown { position: absolute; z-index: 75; top: calc(100% + 10px); right: 0; width: 230px; display: grid; gap: 3px; border: 1px solid var(--line); border-radius: 14px; background: #fff; box-shadow: 0 18px 45px rgba(0,0,0,.16); padding: 9px; }
-.themeDropdown > strong { padding: 7px 9px 8px; font-size: 12px; color: var(--muted); text-transform: uppercase; letter-spacing: .06em; }
-.themeDropdown button { width: 100%; min-height: 42px; display: grid; grid-template-columns: 20px 1fr auto; align-items: center; gap: 10px; border: 0; border-radius: 9px; background: transparent; padding: 9px; text-align: left; font-weight: 800; color: var(--ink); }
-.themeDropdown button:hover, .themeDropdown button.active { background: #f5f5f5; }
-.themeSwatch { width: 17px; height: 17px; border-radius: 50%; }
-.themeTick { color: var(--red); }
+.appearanceToggle {
+  min-height: 40px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  background: var(--card-bg);
+  color: var(--ink);
+  padding: 8px 11px;
+  font-size: 14px;
+  font-weight: 800;
+}
+.appearanceToggle:hover { background: var(--hover-bg); }
+.appearanceToggle svg { width: 19px; height: 19px; fill: none; stroke: currentColor; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
 
-.homePhotoStrip { position: relative; width: min(100%, 980px); height: clamp(180px, 25vw, 290px); margin-top: 24px; overflow: hidden; border-radius: 18px; background-image: linear-gradient(90deg, rgba(0,0,0,.48), rgba(0,0,0,.04)), url("https://unsplash.com/photos/wynkDtIrGlI/download?force=true"); background-size: cover; background-position: center 48%; box-shadow: var(--shadow); }
-.homePhotoOverlay { position: absolute; inset: 0; display: flex; flex-direction: column; justify-content: flex-end; align-items: flex-start; padding: 22px; color: #fff; text-align: left; }
-.homePhotoOverlay span { font-size: clamp(22px, 3vw, 34px); font-weight: 950; letter-spacing: -.025em; text-shadow: 0 2px 18px rgba(0,0,0,.45); }
-.homePhotoOverlay small { margin-top: 4px; color: rgba(255,255,255,.82); font-size: 11px; }
+.homeSearchHero {
+  position: relative;
+  isolation: isolate;
+  width: min(100%, 980px);
+  min-height: clamp(310px, 34vw, 420px);
+  display: grid;
+  align-items: center;
+  margin-top: 30px;
+  overflow: hidden;
+  border-radius: 20px;
+  background-image: url("https://unsplash.com/photos/wynkDtIrGlI/download?force=true");
+  background-size: cover;
+  background-position: center 48%;
+  box-shadow: var(--shadow);
+}
+.homeSearchHeroShade {
+  position: absolute;
+  z-index: -1;
+  inset: 0;
+  background: linear-gradient(90deg, rgba(0,0,0,.62), rgba(0,0,0,.28) 58%, rgba(0,0,0,.14));
+}
+.homeSearchHeroContent {
+  width: 100%;
+  display: grid;
+  gap: 16px;
+  padding: clamp(24px, 4vw, 48px);
+  text-align: left;
+}
+.homeSearchIntro { max-width: 650px; display: grid; gap: 4px; color: #fff; text-shadow: 0 2px 15px rgba(0,0,0,.5); }
+.homeSearchIntro strong { font-size: clamp(22px, 3vw, 34px); line-height: 1.1; letter-spacing: -.025em; }
+.homeSearchIntro span { color: rgba(255,255,255,.9); font-size: 15px; }
+.homeSearchHero .lookupForm { width: min(100%, 860px); margin: 0; background: var(--hero-panel); backdrop-filter: blur(8px); }
+.homePhotoCredit { position: absolute; right: 14px; bottom: 10px; color: rgba(255,255,255,.76); font-size: 10px; text-shadow: 0 1px 4px rgba(0,0,0,.65); }
+
+html[data-appearance="dark"] body { background: var(--surface); color: var(--ink); }
+html[data-appearance="dark"] .siteHeader { border-color: var(--line); background: var(--header-bg); }
+html[data-appearance="dark"] .siteFooter { border-color: var(--line); background: #101215; }
+html[data-appearance="dark"] .desktopNav a,
+html[data-appearance="dark"] label,
+html[data-appearance="dark"] .accountTabs button { color: var(--ink); }
+html[data-appearance="dark"] input,
+html[data-appearance="dark"] select,
+html[data-appearance="dark"] textarea { border-color: #454b54; background: var(--field-bg); color: var(--ink); }
+html[data-appearance="dark"] input::placeholder,
+html[data-appearance="dark"] textarea::placeholder { color: #8f969f; }
+html[data-appearance="dark"] input:disabled { background: #25292e; color: #9ca2aa; }
+html[data-appearance="dark"] .button.secondary,
+html[data-appearance="dark"] .headerAccount,
+html[data-appearance="dark"] .appearanceToggle,
+html[data-appearance="dark"] .accountDropdown,
+html[data-appearance="dark"] .mobileDrawer,
+html[data-appearance="dark"] .manageMenuPanel,
+html[data-appearance="dark"] .modalCard { border-color: var(--line); background: var(--card-bg); color: var(--ink); }
+html[data-appearance="dark"] .button.secondary:hover,
+html[data-appearance="dark"] .accountDropdown a:hover,
+html[data-appearance="dark"] .accountDropdown button:hover,
+html[data-appearance="dark"] .mobileDrawer a:hover,
+html[data-appearance="dark"] .manageMenuPanel a:hover { background: var(--hover-bg); }
+html[data-appearance="dark"] .homeHero { border-color: var(--line); background: linear-gradient(180deg, #131518 0%, #131518 72%, #1d1718 100%); }
+html[data-appearance="dark"] .lookupForm,
+html[data-appearance="dark"] .lookupPanel,
+html[data-appearance="dark"] .registrationCard,
+html[data-appearance="dark"] .authCard,
+html[data-appearance="dark"] .assetDetailCard,
+html[data-appearance="dark"] .settingsCard,
+html[data-appearance="dark"] .quickGrid > a,
+html[data-appearance="dark"] .featureGrid article,
+html[data-appearance="dark"] .planUsageBar,
+html[data-appearance="dark"] .managementGrid > a,
+html[data-appearance="dark"] .managementGrid > button,
+html[data-appearance="dark"] .planCard,
+html[data-appearance="dark"] .selectedPlanBar,
+html[data-appearance="dark"] .importSteps article,
+html[data-appearance="dark"] .tableScroll,
+html[data-appearance="dark"] .locationCard,
+html[data-appearance="dark"] .memberList article,
+html[data-appearance="dark"] .inviteList article,
+html[data-appearance="dark"] .privateFileList button,
+html[data-appearance="dark"] .summaryStrip,
+html[data-appearance="dark"] .cleanActionGrid > a,
+html[data-appearance="dark"] .compactList,
+html[data-appearance="dark"] .inviteAcceptCard,
+html[data-appearance="dark"] .cartCard,
+html[data-appearance="dark"] .orderCard,
+html[data-appearance="dark"] .adminProductList,
+html[data-appearance="dark"] .adminOrderList,
+html[data-appearance="dark"] .notFoundCard,
+html[data-appearance="dark"] .bulkAttachmentPanel,
+html[data-appearance="dark"] .adminImageGrid article,
+html[data-appearance="dark"] .pendingImageGrid article,
+html[data-appearance="dark"] .productCard,
+html[data-appearance="dark"] .productPurchasePanel,
+html[data-appearance="dark"] .productInfoCard,
+html[data-appearance="dark"] .relatedProductGrid > a,
+html[data-appearance="dark"] .transferPreview,
+html[data-appearance="dark"] .helpGrid a,
+html[data-appearance="dark"] .contentSteps article,
+html[data-appearance="dark"] .proseCard,
+html[data-appearance="dark"] .sellerChallenge { border-color: var(--line); background: var(--card-bg); color: var(--ink); }
+html[data-appearance="dark"] .emptyPanel,
+html[data-appearance="dark"] .lookupDisclaimer,
+html[data-appearance="dark"] .resultHeader { border-color: var(--line); background: var(--surface-alt); color: var(--ink); }
+html[data-appearance="dark"] .resultDetails div,
+html[data-appearance="dark"] .resultActions,
+html[data-appearance="dark"] .compactRow,
+html[data-appearance="dark"] .orderCard ul { border-color: var(--line); }
+html[data-appearance="dark"] table th,
+html[data-appearance="dark"] table td { border-color: var(--line); color: var(--ink); }
+html[data-appearance="dark"] .cleanFormActions,
+html[data-appearance="dark"] .adminTabs { background: var(--surface); }
+html[data-appearance="dark"] .homePhotoCredit { color: rgba(255,255,255,.82); }
 
 @media (max-width: 720px) {
-  .themeButtonLabel { display: none; }
-  .themeButton { width: 40px; justify-content: center; padding: 8px; }
-  .themeDropdown { position: fixed; top: calc(var(--header-h) - 3px); right: 12px; left: 12px; width: auto; }
-  .homePhotoStrip { height: 170px; margin-top: 18px; border-radius: 14px; }
-  .homePhotoOverlay { padding: 16px; }
+  .appearanceToggle { width: 40px; padding: 8px; }
+  .appearanceToggleLabel { display: none; }
+  .homeSearchHero { min-height: 360px; margin-top: 22px; border-radius: 15px; background-position: 54% center; }
+  .homeSearchHeroContent { gap: 13px; padding: 22px 16px 30px; }
+  .homeSearchIntro span { font-size: 13px; }
+  .homeSearchHero .lookupForm { padding: 14px; }
+  .homeSearchHero .lookupInputRow { grid-template-columns: 1fr; }
+  .homeSearchHero .lookupInputRow .button { width: 100%; }
+  .homePhotoCredit { right: 10px; bottom: 7px; }
 }

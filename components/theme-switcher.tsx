@@ -1,81 +1,53 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useState } from "react";
 
-type ThemeName = "red" | "navy" | "green" | "orange";
+type Appearance = "light" | "dark";
 
-const themes: Array<{ id: ThemeName; label: string; colour: string }> = [
-  { id: "red", label: "ToolTrack Red", colour: "#d71920" },
-  { id: "navy", label: "Workshop Navy", colour: "#184c7a" },
-  { id: "green", label: "Trade Green", colour: "#24734a" },
-  { id: "orange", label: "Safety Orange", colour: "#d95f0b" },
-];
+function applyAppearance(appearance: Appearance) {
+  document.documentElement.dataset.appearance = appearance;
+  document.documentElement.style.colorScheme = appearance;
+}
 
 export function ThemeSwitcher() {
-  const [theme, setTheme] = useState<ThemeName>("red");
-  const [open, setOpen] = useState(false);
-  const wrapRef = useRef<HTMLDivElement>(null);
+  const [appearance, setAppearance] = useState<Appearance>("light");
 
   useEffect(() => {
-    const saved = window.localStorage.getItem("tooltrack-theme") as ThemeName | null;
-    const initial = themes.some((item) => item.id === saved) ? saved! : "red";
-    setTheme(initial);
-    document.documentElement.dataset.theme = initial;
+    const saved = window.localStorage.getItem("tooltrack-appearance");
+    const preferred: Appearance = window.matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light";
+    const initial: Appearance = saved === "dark" || saved === "light" ? saved : preferred;
+    setAppearance(initial);
+    applyAppearance(initial);
   }, []);
 
-  useEffect(() => {
-    if (!open) return;
-    const close = (event: MouseEvent | TouchEvent) => {
-      if (!wrapRef.current?.contains(event.target as Node)) setOpen(false);
-    };
-    const escape = (event: KeyboardEvent) => {
-      if (event.key === "Escape") setOpen(false);
-    };
-    document.addEventListener("mousedown", close);
-    document.addEventListener("touchstart", close, { passive: true });
-    document.addEventListener("keydown", escape);
-    return () => {
-      document.removeEventListener("mousedown", close);
-      document.removeEventListener("touchstart", close);
-      document.removeEventListener("keydown", escape);
-    };
-  }, [open]);
-
-  function choose(next: ThemeName) {
-    setTheme(next);
-    document.documentElement.dataset.theme = next;
-    window.localStorage.setItem("tooltrack-theme", next);
-    setOpen(false);
+  function toggleAppearance() {
+    const next: Appearance = appearance === "dark" ? "light" : "dark";
+    setAppearance(next);
+    applyAppearance(next);
+    window.localStorage.setItem("tooltrack-appearance", next);
   }
 
-  const active = themes.find((item) => item.id === theme) ?? themes[0];
+  const nextLabel = appearance === "dark" ? "Switch to light mode" : "Switch to dark mode";
 
-  return <div className="themeSwitcher" ref={wrapRef}>
+  return (
     <button
       type="button"
-      className="themeButton"
-      aria-label="Choose website colour"
-      aria-haspopup="menu"
-      aria-expanded={open}
-      onClick={() => setOpen((value) => !value)}
+      className="appearanceToggle"
+      aria-label={nextLabel}
+      title={nextLabel}
+      onClick={toggleAppearance}
     >
-      <span className="themeButtonDot" style={{ background: active.colour }} />
-      <span className="themeButtonLabel">Style</span>
+      {appearance === "dark" ? (
+        <svg viewBox="0 0 24 24" aria-hidden="true">
+          <circle cx="12" cy="12" r="4" />
+          <path d="M12 2v2M12 20v2M4.93 4.93l1.42 1.42M17.66 17.66l1.41 1.41M2 12h2M20 12h2M4.93 19.07l1.42-1.42M17.66 6.34l1.41-1.41" />
+        </svg>
+      ) : (
+        <svg viewBox="0 0 24 24" aria-hidden="true">
+          <path d="M21 12.8A8.5 8.5 0 1 1 11.2 3 6.8 6.8 0 0 0 21 12.8Z" />
+        </svg>
+      )}
+      <span className="appearanceToggleLabel">{appearance === "dark" ? "Light" : "Dark"}</span>
     </button>
-    {open && <div className="themeDropdown" role="menu" aria-label="Website colour options">
-      <strong>Choose a style</strong>
-      {themes.map((item) => <button
-        key={item.id}
-        type="button"
-        role="menuitemradio"
-        aria-checked={theme === item.id}
-        className={theme === item.id ? "active" : ""}
-        onClick={() => choose(item.id)}
-      >
-        <span className="themeSwatch" style={{ background: item.colour }} />
-        <span>{item.label}</span>
-        {theme === item.id && <span className="themeTick" aria-hidden="true">✓</span>}
-      </button>)}
-    </div>}
-  </div>;
+  );
 }

@@ -7,7 +7,10 @@ import { AppShell } from "@/components/app-shell";
 import { PwaRegister } from "@/components/pwa-register";
 import { ToolTrackAnalytics } from "@/components/vercel-analytics";
 
+const publicUrl = process.env.NEXT_PUBLIC_APP_URL || "https://tooltrack.ie";
+
 export const metadata: Metadata = {
+  metadataBase: new URL(publicUrl),
   title: {
     default: "ToolTrack",
     template: "%s | ToolTrack",
@@ -25,16 +28,31 @@ export const viewport: Viewport = {
   width: "device-width",
   initialScale: 1,
   viewportFit: "cover",
-  themeColor: "#d71920",
+  themeColor: [
+    { media: "(prefers-color-scheme: light)", color: "#ffffff" },
+    { media: "(prefers-color-scheme: dark)", color: "#15171a" },
+  ],
 };
 
-export default function RootLayout({
-  children,
-}: Readonly<{
-  children: ReactNode;
-}>) {
+const appearanceScript = `
+  (function () {
+    try {
+      var saved = localStorage.getItem('tooltrack-appearance');
+      var appearance = saved === 'light' || saved === 'dark'
+        ? saved
+        : (window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light');
+      document.documentElement.dataset.appearance = appearance;
+      document.documentElement.style.colorScheme = appearance;
+    } catch (_) {}
+  })();
+`;
+
+export default function RootLayout({ children }: Readonly<{ children: ReactNode }>) {
   return (
-    <html lang="en">
+    <html lang="en" suppressHydrationWarning>
+      <head>
+        <script dangerouslySetInnerHTML={{ __html: appearanceScript }} />
+      </head>
       <body>
         <PwaRegister />
         <AppShell>{children}</AppShell>
