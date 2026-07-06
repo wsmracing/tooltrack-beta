@@ -13,7 +13,7 @@ function response(result: PublicLookupResult, status = 200) {
 
 export async function GET(request: NextRequest) {
   const ip = requestIp(request.headers);
-  const rate = checkRateLimit(`lookup:${ip}`, 20, 60_000);
+  const rate = await checkRateLimit(`lookup:${ip}`, 20, 60_000);
   if (!rate.allowed) {
     return NextResponse.json({ error: "Too many checks. Wait a minute and try again." }, { status: 429, headers: { "Retry-After": String(Math.ceil((rate.resetAt - Date.now()) / 1000)), "Cache-Control": "no-store" } });
   }
