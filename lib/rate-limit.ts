@@ -1,21 +1,44 @@
-type Entry = { count: number; resetAt: number };
-const buckets = new Map<string, Entry>();
+import { createHash } from "node:crypto";
+import { getSupabaseAdmin } from "@/lib/supabase-server";
+
+export type RateLimitResult = {
+  allowed: boolean;
+  remaining: number;
+  resetAt: number;
+};
 
 export function requestIp(headers: Headers): string {
   return (headers.get("x-forwarded-for")?.split(",")[0] || headers.get("x-real-ip") || "unknown").trim();
 }
 
-export function checkRateLimit(key: string, maximum: number, windowMs: number) {
-  const now = Date.now();
-  const current = buckets.get(key);
-  if (!current || current.resetAt <= now) {
-    const next = { count: 1, resetAt: now + windowMs };
-    buckets.set(key, next);
-    return { allowed: true, remaining: Math.max(0, maximum - 1), resetAt: next.resetAt };
+function hashKey(key: string): string {
+  return createHash("sha256").update(key).digest("hex");
+}
+
+export async function checkRateLimit(key: string, maximum: number, windowMs: number): Promise<RateLimitResult> {
+  const admin = getSupabaseAdmin();
+  const fallbackResetAt = Date.now() + windowMs;
+
+  if (!admin) {
+    return { allowed: false, remaining: 0, resetAt: fallbackResetAt };
   }
-  current.count += 1;
-  if (buckets.size > 5000) {
-    for (const [bucketKey, entry] of buckets) if (entry.resetAt <= now) buckets.delete(bucketKey);
+
+  const { data, error } = await admin.rpc("tooltrack_check_rate_limit", {
+    p_key: hashKey(key),
+    p_max: maximum,
+    p_window_seconds: Math.max(1, Math.ceil(windowMs / 1000)),
+  });
+
+  if (error || !data) {
+    return { allowed: false, remaining: 0, resetAt: fallbackResetAt };
   }
-  return { allowed: current.count <= maximum, remaining: Math.max(0, maximum - current.count), resetAt: current.resetAt };
+
+  const row = Array.isArray(data) ? data[0] : data;
+  const resetAt = row?.reset_at ? new Date(row.reset_at).getTime() : fallbackResetAt;
+
+  return {
+    allowed: Boolean(row?.allowed),
+    remaining: Math.max(0, Number(row?.remaining ?? 0)),
+    resetAt,
+  };
 }
