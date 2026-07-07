@@ -8,7 +8,6 @@ import { checkRateLimit, requestIp } from "@/lib/rate-limit";
 
 export const runtime = "nodejs";
 
-
 function cleanText(value: unknown, maxLength: number): string {
   return typeof value === "string" ? value.trim().replace(/\s+/g, " ").slice(0, maxLength) : "";
 }
@@ -96,7 +95,8 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ success: true }, { status: 201 });
   }
 
-  if (!checkRateLimit(`sighting:${requestIp(request.headers)}`, 5, 15 * 60_000).allowed) {
+  const rate = await checkRateLimit(`sighting:${requestIp(request.headers)}`, 5, 15 * 60_000);
+  if (!rate.allowed) {
     return NextResponse.json({ error: "Too many reports were submitted. Please wait and try again." }, { status: 429 });
   }
 

@@ -11,11 +11,15 @@ function response(result: PublicLookupResult, status = 200) {
   return NextResponse.json(result, { status, headers: { "Cache-Control": "no-store", "X-Robots-Tag": "noindex, nofollow" } });
 }
 
+function retryAfterSeconds(resetAt: number): string {
+  return String(Math.max(1, Math.ceil((resetAt - Date.now()) / 1000)));
+}
+
 export async function GET(request: NextRequest) {
   const ip = requestIp(request.headers);
-  const rate = checkRateLimit(`lookup:${ip}`, 20, 60_000);
+  const rate = await checkRateLimit(`lookup:${ip}`, 20, 60_000);
   if (!rate.allowed) {
-    return NextResponse.json({ error: "Too many checks. Wait a minute and try again." }, { status: 429, headers: { "Retry-After": String(Math.ceil((rate.resetAt - Date.now()) / 1000)), "Cache-Control": "no-store" } });
+    return NextResponse.json({ error: "Too many checks. Wait a minute and try again." }, { status: 429, headers: { "Retry-After": retryAfterSeconds(rate.resetAt), "Cache-Control": "no-store" } });
   }
 
   const rawSerial = request.nextUrl.searchParams.get("serial") ?? "";
@@ -40,6 +44,11 @@ export async function GET(request: NextRequest) {
   if (error) return NextResponse.json({ error: "The serial checker is temporarily unavailable." }, { status: 503 });
 
   if (!data?.length) {
+    const missRate = await checkRateLimit(`lookup-miss:${ip}`, 10, 10 * 60_000);
+    if (!missRate.allowed) {
+      return NextResponse.json({ error: "Too many unmatched checks. Wait and try again." }, { status: 429, headers: { "Retry-After": retryAfterSeconds(missRate.resetAt), "Cache-Control": "no-store" } });
+    }
+
     return response({
       found: false,
       status: "none",

@@ -20,7 +20,8 @@ function hashCode(code: string) {
 
 export async function POST(request: NextRequest) {
   const ip = requestIp(request.headers);
-  if (!checkRateLimit(`transfer-create:${ip}`, 10, 60 * 60_000).allowed) return NextResponse.json({ error: "Too many transfer requests. Try again later." }, { status: 429 });
+  const rate = await checkRateLimit(`transfer-create:${ip}`, 10, 60 * 60_000);
+  if (!rate.allowed) return NextResponse.json({ error: "Too many transfer requests. Try again later." }, { status: 429 });
   const admin = getSupabaseAdmin();
   if (!admin) return NextResponse.json({ error: "Transfer service is temporarily unavailable." }, { status: 503 });
   const auth = await authenticatedUser(request);

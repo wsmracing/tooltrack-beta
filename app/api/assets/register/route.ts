@@ -8,7 +8,8 @@ function text(value: unknown, max: number) { return typeof value === "string" ? 
 function numberOrNull(value: unknown) { const parsed = Number(value); return value !== "" && Number.isFinite(parsed) && parsed >= 0 ? parsed : null; }
 
 export async function POST(request: NextRequest) {
-  if (!checkRateLimit(`asset-register:${requestIp(request.headers)}`, 30, 60 * 60_000).allowed) return NextResponse.json({ error: "Too many registration attempts. Try again later." }, { status: 429 });
+  const rate = await checkRateLimit(`asset-register:${requestIp(request.headers)}`, 30, 60 * 60_000);
+  if (!rate.allowed) return NextResponse.json({ error: "Too many registration attempts. Try again later." }, { status: 429 });
   const auth = await authenticatedUser(request);
   if (!auth) return NextResponse.json({ error: "Sign in required." }, { status: 401 });
   const admin = getSupabaseAdmin();
