@@ -2,6 +2,9 @@ import type { Metadata, Viewport } from "next";
 import type { ReactNode } from "react";
 
 import "./globals.css";
+import "./v48.css";
+import "./gallery.css";
+import "./v5.css";
 
 import { AppShell } from "@/components/app-shell";
 import { ToolTrackAnalytics } from "@/components/vercel-analytics";
@@ -17,7 +20,8 @@ export const metadata: Metadata = {
   description:
     "Register tools, store purchase and ownership evidence, report theft and check serial numbers before buying used equipment.",
   icons: {
-    icon: "/icon-192.png",
+    icon: "/favicon.svg",
+    shortcut: "/favicon.svg",
     apple: "/icon-192.png",
   },
   robots: {
