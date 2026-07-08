@@ -1,0 +1,250 @@
+/* ToolTrack V5 — global contrast and mobile form audit */
+:root {
+  --focus-ring: rgba(215,25,32,.22);
+}
+
+html[data-appearance="dark"] {
+  --ink: #f5f7fa;
+  --muted: #c1c8d2;
+  --line: #3b444f;
+  --surface: #0f1115;
+  --surface-alt: #171b21;
+  --card-bg: #171b21;
+  --field-bg: #101419;
+  --hover-bg: #202630;
+  --red-soft: #3a171a;
+  --green-soft: #102b20;
+  --amber-soft: #342612;
+  --danger: #ff6b70;
+}
+
+html[data-appearance="dark"] .siteMain,
+html[data-appearance="dark"] .pagePad {
+  background: var(--surface);
+  color: var(--ink);
+}
+
+html[data-appearance="dark"] h1,
+html[data-appearance="dark"] h2,
+html[data-appearance="dark"] h3,
+html[data-appearance="dark"] h4,
+html[data-appearance="dark"] strong,
+html[data-appearance="dark"] dd,
+html[data-appearance="dark"] .assetTop h3,
+html[data-appearance="dark"] .productCard h2,
+html[data-appearance="dark"] .cartCard h2,
+html[data-appearance="dark"] .orderCard strong {
+  color: var(--ink);
+}
+
+html[data-appearance="dark"] .muted,
+html[data-appearance="dark"] .smallText,
+html[data-appearance="dark"] .fieldHint,
+html[data-appearance="dark"] p,
+html[data-appearance="dark"] dt,
+html[data-appearance="dark"] small,
+html[data-appearance="dark"] .homeLead,
+html[data-appearance="dark"] .homeDisclaimer,
+html[data-appearance="dark"] .pageIntro > p:last-child,
+html[data-appearance="dark"] .sectionHeading > p:last-child {
+  color: var(--muted);
+}
+
+html[data-appearance="dark"] .lookupForm,
+html[data-appearance="dark"] .lookupPanel,
+html[data-appearance="dark"] .registrationCard,
+html[data-appearance="dark"] .authCard,
+html[data-appearance="dark"] .assetDetailCard,
+html[data-appearance="dark"] .settingsCard,
+html[data-appearance="dark"] .assetCard,
+html[data-appearance="dark"] .sightingCard,
+html[data-appearance="dark"] .statsGrid article,
+html[data-appearance="dark"] .quickGrid > a,
+html[data-appearance="dark"] .featureGrid article,
+html[data-appearance="dark"] .compactList,
+html[data-appearance="dark"] .productCard,
+html[data-appearance="dark"] .cartCard,
+html[data-appearance="dark"] .orderCard,
+html[data-appearance="dark"] .adminProductList,
+html[data-appearance="dark"] .adminOrderList,
+html[data-appearance="dark"] .emptyPanel,
+html[data-appearance="dark"] .proseCard,
+html[data-appearance="dark"] .notFoundCard,
+html[data-appearance="dark"] .privateFileList button,
+html[data-appearance="dark"] .assetPhotoGrid button,
+html[data-appearance="dark"] .evidenceEmpty,
+html[data-appearance="dark"] .lockedPlanSummary {
+  border-color: var(--line);
+  background: var(--card-bg);
+  color: var(--ink);
+}
+
+html[data-appearance="dark"] input,
+html[data-appearance="dark"] select,
+html[data-appearance="dark"] textarea {
+  border-color: #56616f;
+  background: var(--field-bg);
+  color: var(--ink);
+}
+
+html[data-appearance="dark"] input:focus,
+html[data-appearance="dark"] select:focus,
+html[data-appearance="dark"] textarea:focus {
+  border-color: #ff5961;
+  box-shadow: 0 0 0 3px rgba(255,89,97,.20);
+}
+
+html[data-appearance="dark"] .button.secondary,
+html[data-appearance="dark"] .headerAccount,
+html[data-appearance="dark"] .appearanceToggle,
+html[data-appearance="dark"] .pills button,
+html[data-appearance="dark"] .segmented button,
+html[data-appearance="dark"] .manageMenuPanel,
+html[data-appearance="dark"] .accountDropdown,
+html[data-appearance="dark"] .mobileDrawer {
+  border-color: var(--line);
+  background: #151a20;
+  color: var(--ink);
+}
+
+html[data-appearance="dark"] .button.primary {
+  background: #e31b23;
+  color: #fff;
+}
+
+html[data-appearance="dark"] .button.primary:hover {
+  background: #ff3038;
+}
+
+html[data-appearance="dark"] .button:disabled {
+  opacity: .72;
+  filter: saturate(.75);
+}
+
+html[data-appearance="dark"] .formActions,
+html[data-appearance="dark"] .cleanFormActions,
+html[data-appearance="dark"] .accountSaveBar {
+  border-color: var(--line);
+  background: var(--card-bg);
+}
+
+html[data-appearance="dark"] .assetLargeIcon,
+html[data-appearance="dark"] .assetIcon,
+html[data-appearance="dark"] .assetPhotoThumb {
+  border-color: var(--line);
+  background: #252b33;
+  color: var(--ink);
+}
+
+html[data-appearance="dark"] .resultCard,
+html[data-appearance="dark"] .resultDetails,
+html[data-appearance="dark"] .resultActions {
+  border-color: var(--line);
+  background: var(--card-bg);
+  color: var(--ink);
+}
+
+html[data-appearance="dark"] .resultHeader {
+  border-color: var(--line);
+  background: #202630;
+  color: var(--ink);
+}
+
+html[data-appearance="dark"] .status.safe,
+html[data-appearance="dark"] .status.recovered,
+html[data-appearance="dark"] .status.reviewed {
+  background: #0f3a29;
+  color: #61d596;
+}
+
+html[data-appearance="dark"] .status.stolen,
+html[data-appearance="dark"] .status.new {
+  background: #46191d;
+  color: #ff767c;
+}
+
+html[data-appearance="dark"] .status.transfer {
+  background: #3c2a10;
+  color: #ffd06f;
+}
+
+html[data-appearance="dark"] .notice.danger {
+  border-color: #c66;
+  background: #3b1417;
+  color: #ff8086;
+}
+
+html[data-appearance="dark"] .notice.success {
+  border-color: #3f8f64;
+  background: #0f2c20;
+  color: #77d99f;
+}
+
+.lockedPlanSummary small {
+  display: block;
+  margin-top: 8px;
+  color: var(--muted);
+  font-size: 12px;
+}
+
+@media (max-width: 680px) {
+  .registrationCard {
+    overflow: visible;
+  }
+  .formStep {
+    min-height: 0;
+    padding: 20px 18px 24px;
+  }
+  .formActions {
+    position: static !important;
+    bottom: auto !important;
+    z-index: auto;
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 12px;
+    padding: 14px 18px 18px;
+    background: var(--surface-alt);
+  }
+  .formActions .button {
+    width: 100%;
+  }
+  .registerPage {
+    padding-bottom: calc(var(--bottom-h) + 36px + env(safe-area-inset-bottom));
+  }
+  .formGrid,
+  .formGrid.two {
+    grid-template-columns: 1fr;
+  }
+}
+
+html[data-appearance="dark"] .assetDetailHero,
+html[data-appearance="dark"] .assetDetailHero .assetSummary,
+html[data-appearance="dark"] .assetDetailHero .assetHeroHeader {
+  background: var(--card-bg);
+  color: var(--ink);
+}
+
+html[data-appearance="dark"] .siteFooter {
+  background: #0f1115;
+  color: var(--ink);
+}
+
+html[data-appearance="dark"] .siteFooter a {
+  color: var(--muted);
+}
+
+html[data-appearance="dark"] .bottomNav {
+  border-color: var(--line);
+  background: #f8f8f8;
+  color: #555;
+}
+
+html:not([data-appearance="dark"]) .muted,
+html:not([data-appearance="dark"]) .smallText,
+html:not([data-appearance="dark"]) .fieldHint {
+  color: #555;
+}
+
+html:not([data-appearance="dark"]) button:disabled {
+  opacity: .68;
+}
