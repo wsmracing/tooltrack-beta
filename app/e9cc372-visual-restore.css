@@ -1,0 +1,159 @@
+/* ToolTrack visual restore based on commit e9cc372 */
+
+/* Restore the e9cc372 page/header width variables in case a later CSS file changed them. */
+:root {
+  --page: 1180px;
+  --gutter: 32px;
+  --header-h: 64px;
+  --bottom-h: 72px;
+}
+
+.pageWidth,
+.headerInner {
+  width: min(calc(100% - var(--gutter)), var(--page));
+  margin-inline: auto;
+}
+
+/* Restore the wordmark-only brand used in e9cc372. */
+.brand.brandWordmarkLogo {
+  display: inline-grid;
+  gap: 4px;
+  align-items: center;
+  line-height: 1;
+  font-weight: 1000;
+  letter-spacing: -.075em;
+}
+
+.brandWordmarkLogo .brandText {
+  font-size: clamp(20px, 2.5vw, 24px);
+  font-weight: 1000;
+  letter-spacing: -.075em;
+  color: var(--ink);
+}
+
+.brandWordmarkLogo .brandText span {
+  color: var(--red);
+}
+
+.brandWordmarkLogo .brandTrackLine {
+  display: block;
+  width: 82px;
+  height: 4px;
+  border-radius: 99px;
+  background: linear-gradient(90deg, var(--red) 0 62%, currentColor 62% 100%);
+  color: var(--ink);
+  justify-self: center;
+}
+
+html[data-appearance="dark"] .brandWordmarkLogo .brandText {
+  color: #fff;
+}
+
+html[data-appearance="dark"] .brandWordmarkLogo .brandTrackLine {
+  color: #fff;
+}
+
+/* Keep admin/team pages aligned to the same max content width as the rest of the app. */
+.teamPage,
+.shopAdminPage,
+.adminPage {
+  max-width: var(--page);
+  margin-inline: auto;
+}
+
+/* Prevent oversized banners/cards from escaping normal page width. */
+.teamPage .organizationBanner,
+.teamPage .splitLayout,
+.shopAdminPage .adminProductList,
+.shopAdminPage .adminOrderList {
+  max-width: 100%;
+}
+
+/* Extra dark-mode safety net from the e9/V4.8 visual baseline. */
+html[data-appearance="dark"] {
+  --surface: #080a0d;
+  --surface-alt: #10151b;
+  --card-bg: #171d24;
+  --field-bg: #0d1117;
+  --ink: #ffffff;
+  --muted: #d7dde5;
+  --line: #5f6875;
+  --hover-bg: #242c35;
+  --red-soft: #431417;
+  color-scheme: dark;
+}
+
+html[data-appearance="dark"] body,
+html[data-appearance="dark"] .siteMain,
+html[data-appearance="dark"] .pagePad {
+  background: var(--surface);
+  color: var(--ink);
+}
+
+html[data-appearance="dark"] .siteHeader {
+  background: rgba(8,10,13,.97);
+  border-bottom-color: #6a7280;
+}
+
+html[data-appearance="dark"] .registrationCard,
+html[data-appearance="dark"] .assetDetailCard,
+html[data-appearance="dark"] .settingsCard,
+html[data-appearance="dark"] .assetCard,
+html[data-appearance="dark"] .cataloguePanel,
+html[data-appearance="dark"] .lookupPanel,
+html[data-appearance="dark"] .authCard,
+html[data-appearance="dark"] .productCard,
+html[data-appearance="dark"] .cartCard,
+html[data-appearance="dark"] .orderCard,
+html[data-appearance="dark"] .adminProductList,
+html[data-appearance="dark"] .adminOrderList,
+html[data-appearance="dark"] .emptyPanel {
+  background: #171d24;
+  color: #fff;
+  border-color: #6a7280;
+}
+
+html[data-appearance="dark"] input,
+html[data-appearance="dark"] select,
+html[data-appearance="dark"] textarea {
+  background: #0d1117;
+  color: #fff;
+  border-color: #7a8390;
+}
+
+html[data-appearance="dark"] input::placeholder,
+html[data-appearance="dark"] textarea::placeholder {
+  color: #b8c0ca;
+}
+
+html[data-appearance="dark"] label,
+html[data-appearance="dark"] h1,
+html[data-appearance="dark"] h2,
+html[data-appearance="dark"] h3,
+html[data-appearance="dark"] strong,
+html[data-appearance="dark"] dd {
+  color: #fff;
+}
+
+html[data-appearance="dark"] .muted,
+html[data-appearance="dark"] .fieldHint,
+html[data-appearance="dark"] p,
+html[data-appearance="dark"] dt,
+html[data-appearance="dark"] small {
+  color: #d7dde5;
+}
+
+@media (max-width: 680px) {
+  :root {
+    --gutter: 24px;
+  }
+
+  .brandWordmarkLogo .brandText {
+    font-size: 19px;
+  }
+
+  .brandWordmarkLogo .brandTrackLine {
+    width: 64px;
+    height: 3px;
+  }
+}

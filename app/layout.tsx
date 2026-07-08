@@ -4,7 +4,7 @@ import type { ReactNode } from "react";
 import "./globals.css";
 import "./v48.css";
 import "./gallery.css";
-import "./v5.css";
+import "./e9cc372-visual-restore.css";
 
 import { AppShell } from "@/components/app-shell";
 import { ToolTrackAnalytics } from "@/components/vercel-analytics";
